@@ -426,10 +426,16 @@ Data4[,c(4:8)]=round(Data4[,c(4:8)],4)
 Data4[,c(4:8)][Data4[,c(4:8)]<0]=0
 Data4=Data4[order(Data4$Strain),]
 
+# Include model selection
+Data4$AIC=rep(DataAIC[,2], each=101)
+Data5=as.data.frame(Data4 %>% group_by(Strain) %>% slice(which.min(AIC)))
+Data4$Selection=ifelse(Data4[,1] %in% Data5[,1] & Data4[,10] %in% Data5[,10], "Accepted", "Rejected")
+
 tiff('Growth Models.tiff', units="in", width=15, height=8, res=1000)
 ggplot(Data4, aes(DayP, DensP/10^5)) +
-  geom_line(aes(color=Strain, linetype=Model), size=1) +
-  geom_point(data=Data, aes(Day, Dens/10^5, color=Strain), size=1.5, pch=16) +
+  geom_line(data=subset(Data4, Selection=="Rejected"), aes(linetype=Model, size=Model), color="grey70") +
+  geom_line(data=subset(Data4, Selection=="Accepted"), aes(color=Strain, linetype=Model, size=Model)) +
+  geom_point(data=Data, aes(Day, Dens/10^5, color=Strain), size=2, pch=16) +
   ylab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) + xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -440,7 +446,8 @@ ggplot(Data4, aes(DayP, DensP/10^5)) +
   theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
-  scale_linetype_manual(values=c("Linear"="solid","Exponential"="dashed","Logistic"="longdash","Gompertz"="twodash","Mortality"="dotted")) +
+  scale_linetype_manual(values=c("Linear"="dotted","Exponential"="dotted","Logistic"="solid","Gompertz"="dashed","Mortality"="longdash")) +
+  scale_size_manual(values=c("Linear"=1,"Exponential"=1.4,"Logistic"=1,"Gompertz"=1,"Mortality"=1)) +
   theme(strip.text.x=element_blank()) +
   facet_wrap(~Strain, scales="free", ncol=3, nrow=2) +
   theme(legend.position="none")

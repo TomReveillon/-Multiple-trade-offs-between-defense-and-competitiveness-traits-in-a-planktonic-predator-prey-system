@@ -365,7 +365,7 @@ ggplot(Data9, aes(NitroP, GRP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_point(data=Data6, aes(Nitro, GR, color=Strain), size=2, pch=16) +
   ylab(expression(italic('C. reinhardtii')~'growth rate'~'('*day^-1*')')) + 
-  xlab(expression('Nitrate concentration'~'('*µmol~NO[3]^{-1}~mL^-1*')')) +
+  xlab(expression('Nitrate concentration'~'('*µmol~NO[3]^{'-'}~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
