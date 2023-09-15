@@ -206,10 +206,10 @@ ModelHIII=unlist(lapply(OutHIII, function (x) x[c("Model")]),recursive=F)
 
 # Ivlev model
 FuncI=function(x, ModI) {
-  ModI=nls(MeanInges ~ (1 - exp(-b * IDens)) * m, start=c(b=0.1, m=10), data=x, )
+  ModI=nls(MeanInges ~ (1 - exp(-b * IDens)) / h, start=c(b=0.1, h=0.1), data=x, )
   Param=coef(ModI)
   b=Param[1]
-  m=Param[2]
+  h=Param[2]
   
   Fit=ModI$m$fitted()
   Res=ModI$m$resid()
@@ -219,19 +219,19 @@ FuncI=function(x, ModI) {
   AIC=AIC(ModI)
   
   Summary=data.frame(R2,AIC)
-  Parameters=data.frame(b,m)
+  Parameters=data.frame(b,h)
   Rates=data.frame(
     Dens = x$IDens,
-    IngesP = (1 - exp(-b * x$IDens)) * m)
+    IngesP = (1 - exp(-b * x$IDens))) / h
 
   Out=list(Model=ModI, Summary=Summary, Parameters=Parameters, Rates=Rates)
   return(Out)
 }
-OutI=lapply(SplitData2[-c(2,3)], FuncI)
+OutI=lapply(SplitData2, FuncI)
 
 RateI=bind_rows(lapply(OutI, function (x) x[c("Rates")]))
 RateI=round(as.data.frame(do.call("rbind",RateI)),4)
-RateI=cbind(Strain=Strain[-c(12:33)],Model="Ivlev II",RateI)
+RateI=cbind(Strain=Strain,Model="Ivlev II",RateI)
 rownames(RateI)=c()
 ParamI=bind_rows(lapply(OutI, function (x) x[c("Parameters")]))
 ParamI=round(as.data.frame(do.call("rbind",ParamI)),4)
@@ -281,7 +281,7 @@ for (i in 1:length(ModelI)) {IngesP[[i]]=predict(ModelI[[i]], newdata=data.frame
 for (i in 1:length(ModelI)) {IngesPSD[[i]]=predictNLS(ModelI[[i]], newdata=data.frame(IDens=unique(IDensP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,3]}
 for (i in 1:length(ModelI)) {IngesPLCI[[i]]=predictNLS(ModelI[[i]], newdata=data.frame(IDens=unique(IDensP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,5]}
 for (i in 1:length(ModelI)) {IngesPUCI[[i]]=predictNLS(ModelI[[i]], newdata=data.frame(IDens=unique(IDensP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,6]}
-DataI=data.frame(Data3[-c(151:450),], IngesP=unlist(IngesP), IngesPLSD=unlist(IngesP)-unlist(IngesPSD), IngesPUSD=unlist(IngesP)+unlist(IngesPSD), IngesPLCI=unlist(IngesPLCI), IngesPUCI=unlist(IngesPUCI), Model="Ivlev II")
+DataI=data.frame(Data3[c(1:900),], IngesP=unlist(IngesP), IngesPLSD=unlist(IngesP)-unlist(IngesPSD), IngesPUSD=unlist(IngesP)+unlist(IngesPSD), IngesPLCI=unlist(IngesPLCI), IngesPUCI=unlist(IngesPUCI), Model="Ivlev II")
 
 
 ############################################
@@ -290,13 +290,12 @@ DataI=data.frame(Data3[-c(151:450),], IngesP=unlist(IngesP), IngesPLSD=unlist(In
 
 # Extract combinations of names
 Strain=unique(Data2[,c("Strain")])
-Strain1=Strain[-c(2,3)]
 
 # Summaries of models
 SummaHI$Strain=Strain; SummaHI$Model="Holling I"
 SummaHII$Strain=Strain; SummaHII$Model="Holling II"
 SummaHIII$Strain=Strain; SummaHIII$Model="Holling III"
-SummaI$Strain=Strain1; SummaI$Model="Ivlev II"
+SummaI$Strain=Strain; SummaI$Model="Ivlev II"
 
 # Combine AIC coefficients
 DataAIC=rbind(SummaHI,SummaHII,SummaHIII,SummaI)
@@ -305,11 +304,9 @@ DataAIC=DataAIC[order(DataAIC$Strain),]
 # Calculate likelihood ratios
 LR1=list(); LR2=list(); LR3=list()
 for (i in 1:length(Strain)) {
-  for (j in 1:length(Strain1)) {
-      LR1[[i]]=lrtest(ModelHII[[i]],ModelHI[[i]])
-      LR2[[i]]=lrtest(ModelHIII[[i]],ModelHI[[i]])
-      LR3[[j]]=lrtest(ModelI[[j]],ModelHI[-c(2,3)][[j]])
-  }
+  LR1[[i]]=lrtest(ModelHII[[i]],ModelHI[[i]])
+  LR2[[i]]=lrtest(ModelHIII[[i]],ModelHI[[i]])
+  LR3[[i]]=lrtest(ModelI[[i]],ModelHI[[i]])
 }
 
 
@@ -318,15 +315,21 @@ for (i in 1:length(Strain)) {
 ###############################################
 
 # Create a dataset
-Data4=rbind(DataHI[,c(1:8)],DataHII[,c(1:8)],DataHIII[,c(1:8)])
+Data4=rbind(DataHI[,c(1:8)],DataHII[,c(1:8)],DataHIII[,c(1:8)],DataI[,c(1:8)])
 Data4[,c(3:7)]=round(Data4[,c(3:7)],4)
 Data4[,c(3:7)][Data4[,c(3:7)]<0]=0
 Data4=Data4[order(Data4$Strain),]
 
+# Include model selection
+Data4$AIC=rep(DataAIC[,2], each=150)
+Data5=as.data.frame(Data4 %>% group_by(Strain) %>% slice(which.min(AIC)))
+Data4$Selection=ifelse(Data4[,1] %in% Data5[,1] & Data4[,9] %in% Data5[,9], "Accepted", "Rejected")
+
 tiff('Functional Response Models.tiff', units="in", width=15, height=8, res=1000)
 ggplot(Data4, aes(IDensP, IngesP)) +
-  geom_line(aes(color=Strain, linetype=Model), size=1) +
-  geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=1.5, pch=16) +
+  geom_line(data=subset(Data4, Selection=="Rejected"), aes(linetype=Model, size=Model), color="grey70") +
+  geom_line(data=subset(Data4, Selection=="Accepted"), aes(color=Strain, linetype=Model, size=Model)) +
+  geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=2, pch=16) +
   ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
@@ -338,7 +341,8 @@ ggplot(Data4, aes(IDensP, IngesP)) +
   theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
-  scale_linetype_manual(values=c("Holling I"="solid","Holling II"="dashed","Holling III"="dotted","Ivlev II"="longdash")) +
+  scale_linetype_manual(values=c("Holling I"="dotted","Holling II"="solid","Holling III"="dotted","Ivlev II"="dashed")) +
+  scale_size_manual(values=c("Holling I"=1,"Holling II"=1,"Holling III"=1.4,"Ivlev II"=1)) +
   theme(strip.text.x=element_blank()) +
   facet_wrap(~Strain, scales="free", ncol=3, nrow=2) +
   theme(legend.position="none")

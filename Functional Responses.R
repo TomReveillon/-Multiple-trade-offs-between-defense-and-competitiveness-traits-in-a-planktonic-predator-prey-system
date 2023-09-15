@@ -2,7 +2,6 @@ setwd("~/LIMNO 2019-2022/Experiments/Functional Response")
 
 rm(list=ls())
 
-library(bbmle)
 library(cowplot)
 library(data.table)
 library(deSolve)
@@ -31,7 +30,7 @@ library(scales)
 ###################################################################################
 
 # Import the dataset
-DataI=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response/Data_FRI.txt", h=T, dec=",")
+DataI=read.table("Data_FRI.txt", h=T, dec=",")
 names(DataI)
 summary(DataI)
 
@@ -41,10 +40,10 @@ DataI[,c(3:6)] %<>% mutate_if(is.character,as.numeric)
 
 # Calculate the initial densities
 DataI$IDens=round(DataI$Cells*DataI$Volu*DataI$Site*DataI$Dilu*DataI$Cove,0)
-DataI=ddply(DataI,.(Strain,Conc), summarize, IDens=round(mean(IDens),0))
+DataI=ddply(DataI, .(Strain,Conc), summarize, IDens=round(mean(IDens),0))
 
 # Import the dataset
-DataF=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response/Data_FRF.txt", h=T, dec=",")
+DataF=read.table("Data_FRF.txt", h=T, dec=",")
 names(DataF)
 summary(DataF)
 
@@ -54,17 +53,13 @@ DataF[,c(3:6)] %<>% mutate_if(is.character,as.numeric)
 
 # Calculate the final densities
 DataF$FDens=round(DataF$Cells*DataF$Volu*DataF$Site*DataF$Dilu*DataF$Cove,0)
-DataF=ddply(DataF,.(Strain,Conc,Trial), summarize, FDens=round(mean(FDens),0))
+DataF=ddply(DataF, .(Strain,Conc,Trial), summarize, FDens=round(mean(FDens),0))
 
 # Create a complete dataset
-Data=data.frame(Strain=DataF[,1], Conc=DataF[,2], Trial=DataF[,3], Time=rep(8/24,198), Pred=rep(4,198), IDens=rep(DataI[,3], each=3), FDens=DataF[,4])
-
-# Calculate densities depletion
-Data$DDens=(Data$IDens-Data$FDens)
-Data$DDens[Data$DDens<0]=0
+Data=data.frame(Strain=DataF[,1], Conc=DataF[,2], Trial=DataF[,3], IDens=rep(DataI[,3], each=3), FDens=DataF[,4])
 
 # Convert density into ingestion rate
-Data$Inges=Data$DDens/Data$Time
+Data$Inges=(Data$IDens-Data$FDens)/(8*60*60)
 
 # Calculate ingestion rate per rotifer
 Data$Inges=Data$Inges/4
@@ -77,107 +72,172 @@ Data$Inges=round(Data$Inges,4)
 Data$Inges[Data$Inges<0]=0
 Data[is.na(Data)]=0
 
+# Calculate mean ingestion rates
+Data2=setDT(Data)[, .(MeanInges=mean(Inges), IDens=mean(IDens)), by=list(Strain,Conc)]
+Data2=as.data.frame(Data2)
+Data2$IDens=Data2$IDens/10^5
 
-#######################################
-### Ordinary differential equations ###
-#######################################
 
-# Rescale densities
-Data[,c(6:9)]=Data[,c(6:9)]/10^5
+################################################
+### Plots of replicated functional responses ###
+################################################
+
+ggplot(subset(Data, Strain=="CR1"), aes(IDens/10^5, Inges, group=Trial)) + 
+  geom_smooth(method="loess", color="mediumpurple3", size=1, se=F) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +  
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
+  scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
+  theme(axis.line=element_line(colour="black", size=0.7, linetype="solid")) +
+  theme(panel.background=element_rect(fill="white", colour="white")) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  theme(legend.position="none")
+
+ggplot(subset(Data, Strain=="CR2"), aes(IDens/10^5, Inges, group=Trial)) + 
+  geom_smooth(method="loess", color="cornflowerblue", size=1, se=F) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
+  scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
+  theme(axis.line=element_line(colour="black", size=0.7, linetype="solid")) +
+  theme(panel.background=element_rect(fill="white", colour="white")) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  theme(legend.position="none")
+
+ggplot(subset(Data, Strain=="CR3"), aes(IDens/10^5, Inges, group=Trial)) + 
+  geom_smooth(method="loess", color="chartreuse3", size=1, se=F) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
+  scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
+  theme(axis.line=element_line(colour="black", size=0.7, linetype="solid")) +
+  theme(panel.background=element_rect(fill="white", colour="white")) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  theme(legend.position="none")
+
+ggplot(subset(Data, Strain=="CR4"), aes(IDens/10^5, Inges, group=Trial)) + 
+  geom_smooth(method="loess", color="gold2", size=1, se=F) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +  
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
+  scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
+  theme(axis.line=element_line(colour="black", size=0.7, linetype="solid")) +
+  theme(panel.background=element_rect(fill="white", colour="white")) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  theme(legend.position="none")
+
+ggplot(subset(Data, Strain=="CR5"), aes(IDens/10^5, Inges, group=Trial)) + 
+  geom_smooth(method="loess", color="darkorange1", size=1, se=F) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
+  scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
+  theme(axis.line=element_line(colour="black", size=0.7, linetype="solid")) +
+  theme(panel.background=element_rect(fill="white", colour="white")) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  theme(legend.position="none")
+
+ggplot(subset(Data, Strain=="CR6"), aes(IDens/10^5, Inges, group=Trial)) + 
+  geom_smooth(method="loess", color="tomato2", size=1, se=F) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
+  scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
+  theme(axis.line=element_line(colour="black", size=0.7, linetype="solid")) +
+  theme(panel.background=element_rect(fill="white", colour="white")) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  theme(legend.position="none")
+
+
+##################################
+### Functional response models ###
+##################################
 
 # Split the dataset
-SplitData=split(Data, list(Data$Strain))
+SplitData2=split(Data2, list(Data2$Strain))
 
 # Extract combinations of names
-Strain=lapply(SplitData, function(x) {unique(x$Strain)})
-Strain=as.character(unlist(Strain))
-Param=unique(c("a","h","sigma"))
+Names=unique(Data2[,c("Strain","Conc")])
+Strain=Names$Strain
 
-# Functional response function
-Inges=function(t, x, parms){
-  with(as.list(parms),{
-    dA = (-a*x[1]/(1 + a*h*x[1]))*P
-    return(list(c(dA)))
-  })
+# Holling II model
+FuncHII=function(x, ModHII) {
+  ModHII=nls(MeanInges ~ (a * IDens) / (1 + a * h * IDens), start=c(a=1.0, h=0.1), data=x)
+  Param=coef(ModHII)
+  a=Param[1]
+  h=Param[2]
+  
+  Fit=ModHII$m$fitted()
+  Res=ModHII$m$resid()
+  MSS=sum((Fit-mean(Fit))^2)
+  RSS=sum(Res^2)
+  R2=MSS/(MSS+RSS)
+  AIC=AIC(ModHII)
+  
+  Summary=data.frame(R2,AIC)
+  Parameters=data.frame(a,h)
+  Rates=data.frame(
+    Dens = x$IDens,
+    IngesP = (a * x$IDens) / (1 + a * h * x$IDens))
+  
+  Out=list(Model=ModHII, Summary=Summary, Parameters=Parameters, Rates=Rates)
+  return(Out)
 }
+OutHII=lapply(SplitData2, FuncHII)
 
-# Densities depletion function
-DDensA=c()
-DensEaten=function(IDens, a, h, Time, P, steps=100) {
-  for (i in 1: length (IDens)){
-    DDensA[i] = IDens[i] - lsoda(y=IDens[i], times=seq(0,Time[i],length=steps), func=Inges, parms=c(a=a, h=h, P=P[i]))[100,2]
-  }
-  return(DDensA)
-}
-
-# Maximum likelihood function
-Likelihood=function(DDens, IDens, a, h, sigma, Time, P, steps=100){
-  if(a <= 0 || h <= 0 || sigma <= 0) return(Inf)
-  Func=DensEaten(IDens=IDens, a=a, h=h, Time=Time, P=P, steps=steps)
-  LR=-1*sum(dnorm(x=log(DDens+1), mean=log(Func+1), sd=sigma, log=T))
-  return(LR)
-}
-
-# Fitting the model
-FuncHII=function(x) {
-  ModHII=mle2(Likelihood, start=list(a=0.1, h=5, sigma=1), control=list(maxit=1000), data=list(IDens=x$IDens, DDens=x$DDens, P=x$Pred, Time=x$Time))}
-OutHII=lapply(SplitData, FuncHII)
-
-CoefHII=lapply(OutHII, summary)
-CoefHII=lapply(CoefHII, coef)
-CoefHII=round(as.data.frame(do.call("rbind",CoefHII)),4)
-CoefHII=cbind(Strain=rep(Strain[c(1:6)], each=3),Param=rep(Param,6),Value=CoefHII[,c(1)],Error=CoefHII[,c(2)])
-CoefHII=as.data.frame(CoefHII)
-rownames(CoefHII)=c()
+RateHII=bind_rows(lapply(OutHII, function (x) x[c("Rates")]))
+RateHII=round(as.data.frame(do.call("rbind",RateHII)),4)
+RateHII=cbind(Strain=Strain[c(1:66)],Model="Holling II",RateHII)
+rownames(RateHII)=c()
+ParamHII=bind_rows(lapply(OutHII, function (x) x[c("Parameters")]))
+ParamHII=round(as.data.frame(do.call("rbind",ParamHII)),4)
+rownames(ParamHII)=c()
+SummaHII=bind_rows(lapply(OutHII, function (x) x[c("Summary")]))
+SummaHII=round(as.data.frame(do.call("rbind",SummaHII)),4)
+rownames(SummaHII)=c()
+ModelHII=unlist(lapply(OutHII, function (x) x[c("Model")]),recursive=F)
 
 
 ##########################################
 ### Fitting functional response models ###
 ##########################################
 
-# Set the predicted datasets
-Strain=rep(Strain, each=150)
+# Set the predicted dataset
+Strain=rep(unique(Data2$Strain), each=150)
 IDensP=as.numeric(rep(seq(0.1,15,by=0.1),6))
-Time=round(rep(8/24,150*6),4); Pred=rep(4,150*6)
-Data2=data.frame(Strain,IDensP,Time,Pred)
-Data3=data.frame(Strain,IDensP,Time,Pred)
-Data4=data.frame(Strain,IDensP,Time,Pred)
-
-# Specify the variables as numeric numbers
-CoefHII[,c(3:4)] %<>% mutate_if(is.character,as.numeric)
-CoefHII=CoefHII %>% arrange(factor(Strain, levels=c("CR1","CR2","CR3","CR4","CR5","CR6")))
-CoefHII$Error[CoefHII$Error=="NaN"]=0
-
-# Include the coefficients
-Data2$a=rep(subset(CoefHII, Param=="a")$Value, each=150)
-Data3$a=rep(subset(CoefHII, Param=="a")$Value-subset(CoefHII, Param=="a")$Error, each=150)
-Data4$a=rep(subset(CoefHII, Param=="a")$Value+subset(CoefHII, Param=="a")$Error, each=150)
-Data2$h=rep(subset(CoefHII, Param=="h")$Value, each=150)
-Data3$h=rep(subset(CoefHII, Param=="h")$Value+subset(CoefHII, Param=="h")$Error, each=150)
-Data4$h=rep(subset(CoefHII, Param=="h")$Value-subset(CoefHII, Param=="h")$Error, each=150)
-
-# Correct the coefficients
-Data2[,c(5:6)][Data2[,c(5:6)] < 0]=0
-Data3[,c(5:6)][Data3[,c(5:6)] < 0]=0
-Data4[,c(5:6)][Data4[,c(5:6)] < 0]=0
-
-# Split the dataset
-SplitData2=split(Data2, list(Data2$Strain))
-SplitData3=split(Data3, list(Data3$Strain))
-SplitData4=split(Data4, list(Data4$Strain))
+Data3=data.frame(Strain,IDensP)
 
 # Holling II model
-Func2HII=function(x) {
-  Mod2HII=DensEaten(IDens=x$IDensP, a=x$a[1], h=x$h[1], Time=rep(x$Time[1],length(IDensP)), P=rep(x$Pred[1],length(IDensP)))}
-Out2HII=lapply(SplitData2, Func2HII)
-Rate2HII=round(as.data.frame(bind_rows(Out2HII)),4)
-Rate2HII=stack(Rate2HII[1:6])[,c(2:1)]
-Out3HII=lapply(SplitData3, Func2HII)
-Rate3HII=round(as.data.frame(bind_rows(Out3HII)),4)
-Rate3HII=stack(Rate3HII[1:6])[,c(2:1)]
-Out4HII=lapply(SplitData4, Func2HII)
-Rate4HII=round(as.data.frame(bind_rows(Out4HII)),4)
-Rate4HII=stack(Rate4HII[1:6])[,c(2:1)]
+IngesP=list(); IngesPSD=list(); IngesPLCI=list(); IngesPUCI=list()
+for (i in 1:length(ModelHII)) {IngesP[[i]]=predict(ModelHII[[i]], newdata=data.frame(IDens=unique(IDensP)))}
+for (i in 1:length(ModelHII)) {IngesPSD[[i]]=predictNLS(ModelHII[[i]], newdata=data.frame(IDens=unique(IDensP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,3]}
+for (i in 1:length(ModelHII)) {IngesPLCI[[i]]=predictNLS(ModelHII[[i]], newdata=data.frame(IDens=unique(IDensP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,5]}
+for (i in 1:length(ModelHII)) {IngesPUCI[[i]]=predictNLS(ModelHII[[i]], newdata=data.frame(IDens=unique(IDensP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,6]}
+DataHII=data.frame(Data3[c(1:900),], IngesP=unlist(IngesP), IngesPLSD=unlist(IngesP)-unlist(IngesPSD), IngesPUSD=unlist(IngesP)+unlist(IngesPSD), IngesPLCI=unlist(IngesPLCI), IngesPUCI=unlist(IngesPUCI), Model="Holling II")
 
 
 ###############################################
@@ -185,37 +245,32 @@ Rate4HII=stack(Rate4HII[1:6])[,c(2:1)]
 ###############################################
 
 # Create a dataset
-Data5=data.frame(Strain=Data2[,1], IDensP=Data2[,2], IngesP=Rate2HII[,2], IngesPLSD=Rate3HII[,2], IngesPUSD=Rate4HII[,2])
-Data5[,c(3:5)]=round(Data5[,c(3:5)],4)
-Data5[,c(3:5)][Data5[,c(3:5)]<0]=0
-
-# Correct ingestion rate per rotifer
-Data5[,c(3:5)]=Data5[,c(3:5)]/4
-
-# Include raw data
-Data6=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response/Data_FRP.txt", h=T, dec=",")
-Data6[,c(2:7)] %<>% mutate_if(is.character,as.numeric)
+Data4=DataHII[,c(1:8)]
+Data4[,c(3:7)]=round(Data4[,c(3:7)],4)
+Data4[,c(3:7)][Data4[,c(3:7)]<0]=0
+Data4=Data4[order(Data4$Strain),]
 
 # Correct standard errors and confidence intervals
-Data5$IngesPLSD=ifelse(Data5$IngesPLSD < Data5$IngesP*0.80, Data5$IngesP*0.80, Data5$IngesPLSD)
-Data5$IngesPUSD=ifelse(Data5$IngesPUSD > Data5$IngesP*1.20, Data5$IngesP*1.20, Data5$IngesPUSD)
+Data4$IngesPLSD=ifelse(Data4$IngesPLSD < Data4$IngesP*0.80, Data4$IngesP*0.80, Data4$IngesPLSD)
+Data4$IngesPUSD=ifelse(Data4$IngesPUSD > Data4$IngesP*1.20, Data4$IngesP*1.20, Data4$IngesPUSD)
+Data4$IngesPLCI=ifelse(Data4$IngesPLCI < Data4$IngesP*0.80, Data4$IngesP*0.80, Data4$IngesPLCI)
+Data4$IngesPUCI=ifelse(Data4$IngesPUCI > Data4$IngesP*1.20, Data4$IngesP*1.20, Data4$IngesPUCI)
 
 # Export the dataset
-Data5[,c(3:5)]=replace(Data5[,c(3:5)],Data5[,c(3:5)]<0,0)
-write.table(Data5, file="Data_FRP.txt", sep="\t", row.names=F)
+Data4[,c(4:7)]=replace(Data4[,c(4:7)],Data4[,c(4:7)]<0,0)
+write.table(Data4, file="Data_FRP.txt", sep="\t", row.names=F)
 
 tiff('Functional Responses.tiff', units="in", width=8, height=8, res=1000)
-ggplot(Data5, aes(IDensP, IngesP, group=Strain)) +
+ggplot(Data4, aes(IDensP, IngesP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
-  geom_line(data=Data6, aes(color=Strain), linetype="dotted", size=1) +
-  geom_point(data=Data, aes(IDens, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
+  geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
   ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
   theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
-  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.2,by=0.3), limits=c(0,1.2)) +
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
   scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
   theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
@@ -224,18 +279,17 @@ ggplot(Data5, aes(IDensP, IngesP, group=Strain)) +
 dev.off()
 
 tiff('Functional Responses Intervals.tiff', units="in", width=15, height=8, res=1000)
-ggplot(Data5, aes(IDensP, IngesP, group=Strain)) +
+ggplot(Data4, aes(IDensP, IngesP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
-  geom_line(data=Data6, aes(color=Strain), linetype="dotted", size=1) +
   geom_ribbon(aes(ymin=IngesPLSD, ymax=IngesPUSD, fill=Strain, color=Strain), linetype="solid", size=0.5, alpha=0.3) +
-  geom_point(data=Data, aes(IDens, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
+  geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
   ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
   theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
-  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.2,by=0.3), limits=c(0,1.2)) +
+  scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8)) +
   scale_x_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,15,by=3), limits=c(0,15)) +
   theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
