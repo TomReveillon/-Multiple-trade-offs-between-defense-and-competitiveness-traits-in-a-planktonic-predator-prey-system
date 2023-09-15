@@ -29,9 +29,9 @@ library(scales)
 ###################################################################################
 ###################################################################################
 
-####################################################
-### Estimation of functional response parameters ###
-####################################################
+##################################################################
+### Estimation of functional response parameters without beads ###
+##################################################################
 
 # Import the dataset
 DataFR=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response/Data_FRPODE.txt", h=T, dec=",")
@@ -62,7 +62,7 @@ OutFR=lapply(SplitDataFR, FuncFR)
 # Calculate the attack rates
 Attacks=bind_rows(lapply(OutFR, function (x) x[c("Attack")]))
 Attacks=round(as.data.frame(do.call("rbind",Attacks)),4)
-Attacks=cbind(Strain=unique(Strain),Attacks)
+Attacks=cbind(Strain=Strain,Attacks)
 rownames(Attacks)=c()
 
 # Calculate the handling times
@@ -95,9 +95,94 @@ DetectionsL=round(Attacks[,3]/(AttackMax[,3]*IngestionsU),4)
 DetectionsU=round(Attacks[,4]/(AttackMax[,4]*IngestionsL),4)
 
 
-#################################################
-### Estimation of prey growth rate parameters ###
-#################################################
+###############################################################
+### Estimation of functional response parameters with beads ###
+###############################################################
+
+# Import the dataset
+DataFRB=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response Beads/Data_FRBPODE.txt", h=T, dec=",")
+summary(DataFRB)
+names(DataFRB)
+
+# Specify the variables as numeric or factor
+DataFRB[,c(3:6)] %<>% mutate_if(is.character,as.numeric)
+DataFRB$Strain=factor(DataFRB$Strain, levels=unique(DataFRB$Strain))
+DataFRB$Bead=factor(DataFRB$Bead, levels=unique(DataFRB$Bead))
+
+# Split the dataset
+SplitDataFRB=split(DataFRB, list(DataFRB$Strain,DataFRB$Bead))
+
+# Extract combinations of names
+Strain=unique(DataFRB[,c("Strain","Bead")])[,1]
+Bead=unique(DataFRB[,c("Strain","Bead")])[,2]
+
+# Functional response model
+FuncFRB=function(x) {
+  ModFRB=nls(IngesP ~ (a * IDensP) / (1 + a * h * IDensP), start=c(a=1.0, h=0.1), data=x)
+  ModFRBL=nls(IngesPLSD ~ (a * IDensP) / (1 + a * h * IDensP), start=c(a=1.0, h=0.1), data=x)
+  ModFRBU=nls(IngesPUSD ~ (a * IDensP) / (1 + a * h * IDensP), start=c(a=1.0, h=0.1), data=x)
+  AttackB=data.frame(AttackB=coef(ModFRB)[1], AttackBL=coef(ModFRBL)[1], AttackBU=coef(ModFRBU)[1])
+  HandlingB=data.frame(HandlingB=coef(ModFRB)[2], HandlingBL=coef(ModFRBU)[2], HandlingBU=coef(ModFRBL)[2])
+  Parameters=list(AttackB=AttackB, HandlingB=HandlingB)
+}
+OutFRB=lapply(SplitDataFRB, FuncFRB)
+
+# Calculate the attack rates
+AttacksB=bind_rows(lapply(OutFRB, function (x) x[c("AttackB")]))
+AttacksB=round(as.data.frame(do.call("rbind",AttacksB)),4)
+AttacksB=cbind(Strain=Strain,Bead=Bead,AttacksB)
+rownames(AttacksB)=c()
+
+# Calculate the handling times
+HandlingsB=bind_rows(lapply(OutFRB, function (x) x[c("HandlingB")]))
+HandlingsB=round(as.data.frame(do.call("rbind",HandlingsB)),4)
+HandlingsB=cbind(Strain=Strain,Bead=Bead,HandlingsB)
+rownames(HandlingsB)=c()
+
+# Include bead parameters
+BeadC=DataFRB$IDensP[1:900]*0.0000
+BeadL=DataFRB$IDensP[1:900]*0.0625
+BeadM=DataFRB$IDensP[1:900]*0.1250
+BeadH=DataFRB$IDensP[1:900]*0.2500
+DataFRB$IBeadP=c(BeadC,BeadL,BeadM,BeadH)
+
+# Include functional response parameters
+DataFRB$Attack=rep(AttacksB[,3][1:6], each=150)
+DataFRB$AttackL=rep(AttacksB[,4][1:6], each=150)
+DataFRB$AttackU=rep(AttacksB[,5][1:6], each=150)
+DataFRB$Handling=rep(HandlingsB[,3][1:6], each=150)
+DataFRB$HandlingL=rep(HandlingsB[,4][1:6], each=150)
+DataFRB$HandlingU=rep(HandlingsB[,5][1:6], each=150)
+
+# Split the dataset
+SplitDataC=split(DataFRB, list(DataFRB$Strain))
+
+# Functional response model
+FuncC=function(x) {
+  ModC=nls(IngesP ~ (a * IDensP) / (1 + a * h * IDensP + c * IBeadP), start=c(a=1.0, h=0.1, c=1.0), data=x)
+  Coefficient=data.frame(Coefficient=coef(summary(ModC))[3,1], CoefficientSD=coef(summary(ModC))[3,2])
+  Coefficient=data.frame(Coefficient=Coefficient[,1], CoefficientL=Coefficient[,1]-Coefficient[,2], CoefficientU=Coefficient[,1]+Coefficient[,2])
+  Parameters=list(Coefficient=Coefficient)
+}
+OutC=lapply(SplitDataC, FuncC)
+
+# Calculate the bead coefficient
+Coefficient=bind_rows(lapply(OutC, function (x) x[c("Coefficient")]))
+Coefficient=round(as.data.frame(do.call("rbind",Coefficient)),4)
+Coefficient=cbind(Strain=Strain,Coefficient)
+rownames(Coefficient)=c()
+
+# Convert parameters units
+DataFRB$A=round((DataFRB$Attack*60*60*24)/(10^6),4)
+DataFRB$H=round((DataFRB$Handling/60/60/24)*(10^6),4)
+
+# Functional response model
+ModCR=nls(((IngesP*60*60*24)/10^6) ~ (A * (IDensP*10^-1)) / (1 + A * H * (IDensP*10^-1) + c * (IBeadP*10^-1)), start=c(c=1.0), data=subset(DataFRB, Strain=="CR4"))
+
+
+###############################################################
+### Estimation of prey growth rate parameters without beads ###
+###############################################################
 
 # Import the dataset
 DataAG=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Prey Growth/Data_AGP.txt", h=T, dec=",")
@@ -128,9 +213,9 @@ GRU=round(GR+c(do.call("rbind",lapply(SplitDataAG, ModGRSD))),4)
 GrowAG=data.frame(Strain=Strain, GrowAG=GR, GrowAGL=GRL, GrowAGU=GRU)
 
 
-#####################################################
-### Estimation of predator growth rate parameters ###
-#####################################################
+###################################################################
+### Estimation of predator growth rate parameters without beads ###
+###################################################################
 
 # Import the dataset
 DataRG=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Predator Growth/Data_RGP.txt", h=T, dec=",")
@@ -159,6 +244,41 @@ GR=round(c(do.call("rbind",lapply(SplitDataRG, ModGR))),4)
 GRL=round(GR-c(do.call("rbind",lapply(SplitDataRG, ModGRSD))),4)
 GRU=round(GR+c(do.call("rbind",lapply(SplitDataRG, ModGRSD))),4)
 GrowRG=data.frame(Strain=Strain, GrowRG=GR, GrowRGL=GRL, GrowRGU=GRU)
+
+
+################################################################
+### Estimation of predator growth rate parameters with beads ###
+################################################################
+
+# Import the dataset
+DataRGB=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Predator Growth Beads/Data_RGBP.txt", h=T, dec=",")
+summary(DataRGB)
+names(DataRGB)
+
+# Specify the variables as numeric or factor
+DataRGB[,c(3:8)] %<>% mutate_if(is.character,as.numeric)
+DataRGB$Strain=factor(DataRGB$Strain, levels=unique(DataRGB$Strain))
+DataRGB$Bead=factor(DataRGB$Bead, levels=unique(DataRGB$Bead))
+
+# Select the time period
+DataRGB=as.data.frame(DataRGB %>% group_by(Strain,Bead) %>% dplyr::slice(0:n()))
+
+# Split the dataset
+SplitDataRGB=split(DataRGB, list(DataRGB$Bead,DataRGB$Strain))
+
+# Extract combinations of names
+Strain=unique(DataRGB[,c("Strain","Bead")])[,1]
+Bead=unique(DataRGB[,c("Strain","Bead")])[,2]
+
+# Calculate the intrinsic growth rates
+ModGR=function(x) {coef(summary(lm(DensP~DayP, data=subset(x, DayP <= 5))))[2,1]}
+ModGRSD=function(x) {coef(summary(lm(DensP~DayP, data=subset(x, DayP <= 5))))[2,2]}
+
+# Calculate the intrinsic growth rates
+GR=round(c(do.call("rbind",lapply(SplitDataRGB, ModGR))),4)
+GRL=round(GR-c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
+GRU=round(GR+c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
+GrowRGB=data.frame(Strain=Strain, Bead=Bead, GrowRGB=GR, GrowRGBL=GRL, GrowRGBU=GRU)
 
 
 ########################################################
@@ -201,40 +321,31 @@ MeltData=MeltData[,c("Strain","Trait","PreyG","PreyGL","PreyGU","PreyGM","PreyGM
 ### Correlation between defense and competitiveness traits ###
 ##############################################################
 
-# Create a list of combined traits
-Data2=transform(Data, Attack=rev(Attack), PredG=rev(PredG), Satur=Satur)
-Data3=transform(Data, Attack=rev(Attack), PredG=rev(PredG), Satur=rev(Satur))
-Data4=transform(Data, Handling=rev(Handling), Area=rev(Area), Satur=rev(Satur))
-CorListI1=list(Data[,c(2,9,7,8)],Data[,c(3,9,7,8)],Data[,c(5,9,7,8)],Data[,c(6,9,7,8)])
-CorListI2=list(Data3[,c(2,9,7,8)],Data4[,c(3,9,7,8)],Data3[,c(5,9,7,8)],Data4[,c(6,9,7,8)])
-CorListS1=list(Data3[,c(2,9,7,8)],Data[,c(3,9,7,8)],Data3[,c(5,9,7,8)],Data[,c(6,9,7,8)])
-CorListS2=list(Data2[,c(2,9,7,8)],Data[,c(3,9,7,8)],Data2[,c(5,9,7,8)],Data[,c(6,9,7,8)])
+# Create a list of traits
+ListData=list(Data[,c(2,9,7,8)],Data[,c(3,9,7,8)],Data[,c(5,9,7,8)],Data[,c(6,9,7,8)])
 
 # Calculate regression intercepts
-PreyGI=do.call("rbind",lapply(CorListI1, function(x) {coef(lm(x[,1]~x[,2]))}))[,1]
-AffinI=do.call("rbind",lapply(CorListI1, function(x) {coef(lm(x[,1]~x[,3]))}))[,1]
-SaturI=do.call("rbind",lapply(CorListI2, function(x) {coef(lm(x[,1]~x[,4]))}))[,1]
+MeltData$InterPreyG=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,2]))}))[,1],4), each=6)
+MeltData$InterAffin=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,3]))}))[,1],4), each=6)
+MeltData$InterSatur=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,4]))}))[,1],4), each=6)
 
 # Calculate regression slopes
-PreyGS=do.call("rbind",lapply(CorListS1, function(x) {coef(lm(x[,1]~x[,2]))}))[,2]
-AffinS=do.call("rbind",lapply(CorListS1, function(x) {coef(lm(x[,1]~x[,3]))}))[,2]
-SaturS=do.call("rbind",lapply(CorListS2, function(x) {coef(lm(x[,1]~x[,4]))}))[,2]
+MeltData$SlopePreyG=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,2]))}))[,2],4), each=6)
+MeltData$SlopeAffin=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,3]))}))[,2],4), each=6)
+MeltData$SlopeSatur=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,4]))}))[,2],4), each=6)
 
-# Order regression coefficients
-PreyGI=c(-PreyGI[1],PreyGI[2],-PreyGI[3],PreyGI[4])
-PreyGS=c(PreyGS[1],PreyGS[2],PreyGS[3],PreyGS[4])
-AffinI=c(-AffinI[1],AffinI[2],-AffinI[3],AffinI[4])
-AffinS=c(AffinS[1],AffinS[2],AffinS[3],AffinS[4])
-SaturI=c(-SaturI[1],SaturI[2],-SaturI[3],SaturI[4])
-SaturS=c(-SaturS[1],-SaturS[2],-SaturS[3],-SaturS[4])
+# Calculate correlation coefficients
+MeltData$CorPreyG=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,2])[[4]]})),4), each=6)
+MeltData$CorAffin=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,3])[[4]]})),4), each=6)
+MeltData$CorSatur=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,4])[[4]]})),4), each=6)
+MeltData$SigniPreyG=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,2])[[3]]})),4), each=6)
+MeltData$SigniAffin=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,3])[[3]]})),4), each=6)
+MeltData$SigniSatur=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,4])[[3]]})),4), each=6)
 
-# Include regression coefficients
-MeltData$PreyGI=rep(round(PreyGI,4), each=6)
-MeltData$PreyGS=rep(round(PreyGS,4), each=6)
-MeltData$AffinI=rep(round(AffinI,4), each=6)
-MeltData$AffinS=rep(round(AffinS,4), each=6)
-MeltData$SaturI=rep(round(SaturI,4), each=6)
-MeltData$SaturS=rep(round(SaturS,4), each=6)
+# Identify non-significant correlations
+MeltData$SigniPreyG=ifelse(MeltData$SigniPreyG > 0.05, "No", "Yes")
+MeltData$SigniAffin=ifelse(MeltData$SigniAffin > 0.05, "No", "Yes")
+MeltData$SigniSatur=ifelse(MeltData$SigniSatur > 0.05, "No", "Yes")
 
 
 ######################################################
@@ -246,10 +357,10 @@ SplitData=split(MeltData, list(MeltData$Trait))
 
 PlotFunc=function(x) {
   ggplot(x, aes(group=Strain)) +
-    geom_abline(aes(intercept=PreyGI, slope=PreyGS), color="grey50", linetype="solid", size=0.6) +
+    geom_abline(aes(intercept=InterPreyG, slope=SlopePreyG), color="grey50", linetype="solid", size=0.6) +
     geom_errorbar(aes(PreyGM, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
     geom_errorbar(aes(PreyGM, Value, xmin=PreyGML, xmax=PreyGMU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
-    geom_point(aes(PreyGM, Value, color=Strain), fill="white", size=3, stroke=1.2, pch=21) + 
+    geom_point(aes(PreyGM, Value, color=Strain), fill="white", size=3, pch=16) + 
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
@@ -266,10 +377,10 @@ PlotFunc=function(x) {
 
 tiff('Trait Spaces 1.tiff', units="in", width=12, height=12, res=1000)
 Panel=lapply(SplitData, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_reverse(expression('Attack rate'~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(1.8,0,by=-0.6), fmt="%.1f"), breaks=c(seq(0.18,0,by=-0.06)), limits=c(0.18,0))
-Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
+Panel[[1]]=Panel[[1]] + scale_y_reverse(expression('Predator attack rate'~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(1.8,0,by=-0.6), fmt="%.1f"), breaks=c(seq(0.18,0,by=-0.06)), limits=c(0.18,0))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Predator handling time'~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
 Panel[[3]]=Panel[[3]] + scale_y_reverse(expression('Predator growth rate'~'('*day^-1*')'), labels=sprintf(seq(6.0,0,by=-2.0), fmt="%.1f"), breaks=c(seq(6.0,0,by=-2.0)), limits=c(6.0,-0.3))
-Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Cell area'~'('*10^3~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
+Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Prey size'~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
 Xaxis=textGrob(expression('Prey maximum growth rate'~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=0)
 grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=2)
 dev.off()
@@ -277,10 +388,10 @@ dev.off()
 
 PlotFunc=function(x) {
   ggplot(x, aes(group=Strain)) +
-    geom_abline(aes(intercept=AffinI, slope=AffinS), color="grey50", linetype="solid", size=0.6) +
+    geom_abline(aes(intercept=InterAffin, slope=SlopeAffin), color="grey50", linetype="solid", size=0.6) +
     geom_errorbar(aes(Affin, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
     geom_errorbar(aes(Affin, Value, xmin=AffinL, xmax=AffinU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
-    geom_point(aes(Affin, Value, color=Strain), fill="white", size=3, stroke=1.2, pch=21) + 
+    geom_point(aes(Affin, Value, color=Strain), fill="white", size=3, pch=16) + 
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
@@ -297,10 +408,10 @@ PlotFunc=function(x) {
 
 tiff('Trait Spaces 2.tiff', units="in", width=12, height=12, res=1000)
 Panel=lapply(SplitData, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_reverse(expression('Attack rate'~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(1.8,0,by=-0.6), fmt="%.1f"), breaks=c(seq(0.18,0,by=-0.06)), limits=c(0.18,0))
-Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
+Panel[[1]]=Panel[[1]] + scale_y_reverse(expression('Predator attack rate'~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(1.8,0,by=-0.6), fmt="%.1f"), breaks=c(seq(0.18,0,by=-0.06)), limits=c(0.18,0))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Predator handling time'~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
 Panel[[3]]=Panel[[3]] + scale_y_reverse(expression('Predator growth rate'~'('*day^-1*')'), labels=sprintf(seq(6.0,0,by=-2.0), fmt="%.1f"), breaks=c(seq(6.0,0,by=-2.0)), limits=c(6.0,-0.3))
-Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Cell area'~'('*10^3~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
+Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Prey size'~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
 Xaxis=textGrob(expression('Prey nitrate affinity'~'('*µM~NO[3]^{'-'}~L^-1~day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=0)
 grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=2)
 dev.off()
@@ -308,15 +419,15 @@ dev.off()
 
 PlotFunc=function(x) {
   ggplot(x, aes(group=Strain)) +
-    geom_abline(aes(intercept=SaturI, slope=SaturS), color="grey50", linetype="solid", size=0.6) +
+    geom_abline(aes(intercept=InterSatur, slope=SlopeSatur), color="grey50", linetype="solid", size=0.6) +
     geom_errorbar(aes(Satur, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
     geom_errorbar(aes(Satur, Value, xmin=SaturL, xmax=SaturU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
-    geom_point(aes(Satur, Value, color=Strain), fill="white", size=3, stroke=1.2, pch=21) + 
+    geom_point(aes(Satur, Value, color=Strain), fill="white", size=3, pch=16) + 
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
     theme(axis.title.x=element_blank()) +
-    scale_x_reverse(labels=sprintf(seq(2.0,0.5,by=-0.5), fmt="%.1f"), breaks=seq(2.0,0.5,by=-0.5), limits=c(2.075,0.425)) +
+    scale_x_reverse(labels=sprintf(seq(2.8,0.4,by=-0.8), fmt="%.1f"), breaks=seq(2.8,0.4,by=-0.8), limits=c(3.024,0.4)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
     scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
@@ -328,10 +439,32 @@ PlotFunc=function(x) {
 
 tiff('Trait Spaces 3.tiff', units="in", width=12, height=12, res=1000)
 Panel=lapply(SplitData, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_reverse(expression('Attack rate'~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(1.8,0,by=-0.6), fmt="%.1f"), breaks=c(seq(0.18,0,by=-0.06)), limits=c(0.18,0))
-Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
+Panel[[1]]=Panel[[1]] + scale_y_reverse(expression('Predator attack rate'~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(1.8,0,by=-0.6), fmt="%.1f"), breaks=c(seq(0.18,0,by=-0.06)), limits=c(0.18,0))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Predator handling time'~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
 Panel[[3]]=Panel[[3]] + scale_y_reverse(expression('Predator growth rate'~'('*day^-1*')'), labels=sprintf(seq(6.0,0,by=-2.0), fmt="%.1f"), breaks=c(seq(6.0,0,by=-2.0)), limits=c(6.0,-0.3))
-Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Cell area'~'('*10^3~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
+Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Prey size'~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
 Xaxis=textGrob(expression('Prey nitrate half-saturation'~'('*µM~NO[3]^{'-'}~L^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=0)
 grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=2)
 dev.off()
+
+
+#######################################################
+### Trade-off plot of attack rate and handling time ###
+#######################################################
+
+ggplot(Data, aes(Attacks, Handling, group=Strain)) +
+  geom_abline(intercept=2.276, slope=-3.965, color="black", linetype="solid", size=1) +
+  geom_point(aes(fill=Strain, color=Strain), size=6, pch=21) + 
+  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+  theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+  scale_y_continuous(expression('Handling time'~'('*sec^-1*')'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,2.5,by=0.5), limits=c(0,2.5)) +
+  scale_x_continuous(expression('Attack rate'~'('*mL~sec^-1*')'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.6,by=0.2), limits=c(0,0.6)) +
+  theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+  scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2"),0.6)) +
+  scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
+  annotate("text", x=0.55, y=2.5, label=expression(italic(R^2) *~'= 0.49'), size=6) +
+  theme(strip.text.x=element_blank()) +
+  theme(legend.position="none")
