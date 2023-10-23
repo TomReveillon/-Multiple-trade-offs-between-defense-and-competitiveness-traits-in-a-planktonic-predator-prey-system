@@ -383,23 +383,30 @@ bartlett.test(FeatCV$CV~FeatCV$Strain)
 kruskal.test(FeatCV$CV, FeatCV$Strain)
 dunn.test(FeatCV$CV, FeatCV$Strain)
 
-# Plot the coefficients of variation
+# Split the dataset
+SplitFeatCV=list(FeatCV)
+
+PlotFunc=function(x) {
+  ggplot(x, aes(Strain, CV, group=Strain)) +
+    geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, outlier.shape=NA) + 
+    geom_point(aes(color=Strain), size=1.5, pch=16, alpha=0.7, position=position_jitter(0.3)) +
+    ylab("Coefficient of variation (%)") + xlab(expression(italic('C. reinhardtii')~'strain')) +
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.y=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) + 
+    scale_y_continuous(labels=function(x) sprintf("%.0f", x), breaks=seq(0,100,by=25), limits=c(0,100)) +
+    scale_x_discrete(labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R6]),expression(C[R7]))) +
+    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    theme(legend.position="none")
+}
+
 tiff('CV Traits Interstrain.tiff', units="in", width=8, height=8, res=1000)
-ggplot(FeatCV, aes(Strain, CV, group=Strain)) +
-  geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, outlier.shape=NA) + 
-  geom_point(aes(color=Strain), size=1.5, pch=16, alpha=0.7, position=position_jitter(0.3)) +
-  ylab("Coefficient of variation (%)") + xlab(expression(italic('C. reinhardtii')~'strain')) +
-  theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
-  theme(axis.text.x=element_blank()) + 
-  theme(axis.title.y=element_text(face="plain", colour="black", size=18)) + 
-  theme(axis.title.x=element_text(face="plain", colour="black", size=18)) + 
-  theme(axis.ticks.x=element_blank()) +
-  scale_y_continuous(labels=function(x) sprintf("%.0f", x), breaks=seq(0,80,by=20), limits=c(0,80)) +
-  theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
-  theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-  scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
-  scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
-  theme(legend.position="none")
+Panel=lapply(SplitFeatCV, PlotFunc)
+grid.arrange(grobs=Panel, ncol=1, nrow=1)
 dev.off()
 
 
