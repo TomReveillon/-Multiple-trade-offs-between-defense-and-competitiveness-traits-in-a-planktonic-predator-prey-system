@@ -367,7 +367,7 @@ ggplot(Data4, aes(DayP, DensP)) +
   geom_line(data=subset(Data4, Selection=="Rejected"), aes(linetype=Model, size=Model), color="grey70") +
   geom_line(data=subset(Data4, Selection=="Accepted"), aes(color=Strain, linetype=Model, size=Model)) +
   geom_point(data=Data, aes(Day, Count, color=Strain), size=2, pch=16) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) + xlab(expression('Time (days)')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) + xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +

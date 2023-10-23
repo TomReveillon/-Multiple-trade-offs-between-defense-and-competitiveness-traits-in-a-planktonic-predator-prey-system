@@ -51,7 +51,7 @@ Data2=as.data.frame(Data2)
 
 ggplot(subset(Data, Strain=="CR1"), aes(Day, Count, group=Strain)) + 
   geom_smooth(method="loess", color="mediumpurple3", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) +
   xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -66,7 +66,7 @@ ggplot(subset(Data, Strain=="CR1"), aes(Day, Count, group=Strain)) +
 
 ggplot(subset(Data, Strain=="CR2"), aes(Day, Count, group=Strain)) +
   geom_smooth(method="loess", color="cornflowerblue", size=1, se=F) +  
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) +
   xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -81,7 +81,7 @@ ggplot(subset(Data, Strain=="CR2"), aes(Day, Count, group=Strain)) +
 
 ggplot(subset(Data, Strain=="CR3"), aes(Day, Count, group=Strain)) +   
   geom_smooth(method="loess", color="chartreuse3", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) +
   xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -96,7 +96,7 @@ ggplot(subset(Data, Strain=="CR3"), aes(Day, Count, group=Strain)) +
 
 ggplot(subset(Data, Strain=="CR4"), aes(Day, Count, group=Strain)) +   
   geom_smooth(method="loess", color="gold2", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) +
   xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -111,7 +111,7 @@ ggplot(subset(Data, Strain=="CR4"), aes(Day, Count, group=Strain)) +
 
 ggplot(subset(Data, Strain=="CR5"), aes(Day, Count, group=Strain)) +   
   geom_smooth(method="loess", color="darkorange1", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) +
   xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -126,7 +126,7 @@ ggplot(subset(Data, Strain=="CR5"), aes(Day, Count, group=Strain)) +
 
 ggplot(subset(Data, Strain=="CR6"), aes(Day, Count, group=Strain)) +   
   geom_smooth(method="loess", color="tomato2", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) +
   xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -304,7 +304,7 @@ tiff('Growth Curves.tiff', units="in", width=8, height=8, res=1000)
 ggplot(Data4, aes(DayP, DensP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_point(data=Data, aes(Day, Count, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) + xlab(expression('Time (days)')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) + xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
@@ -322,7 +322,7 @@ ggplot(Data4, aes(DayP, DensP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_ribbon(aes(ymin=DensPLSD, ymax=DensPUSD, fill=Strain, color=Strain), linetype="solid", size=0.5, alpha=0.3) +
   geom_point(data=Data, aes(Day, Count, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
-  ylab(expression(italic('B. calyciflorus')~'density'~'('*ind~mL^-1*')')) + xlab(expression('Time (days)')) +
+  ylab(expression(italic('B. calyciflorus')~'density'~'('*rotifers~mL^-1*')')) + xlab(expression('Time (days)')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
