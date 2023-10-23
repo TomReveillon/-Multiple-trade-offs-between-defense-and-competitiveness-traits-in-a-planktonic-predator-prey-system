@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Functional Response")
+setwd("~/LIMNO 2019-2022/Experiments/Predator Ingestion")
 
 rm(list=ls())
 
