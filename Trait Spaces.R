@@ -281,9 +281,9 @@ GRU=round(GR+c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
 GrowRGB=data.frame(Strain=Strain, Bead=Bead, GrowRGB=GR, GrowRGBL=GRL, GrowRGBU=GRU)
 
 
-########################################################
-### Estimation of nitrogen affinities and morphology ###
-########################################################
+####################################################
+### Estimation of prey nitrogen absorption rates ###
+####################################################
 
 # Import the dataset
 DataHS=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Prey Growth/Data_HSP.txt", h=T, dec=",")
@@ -293,28 +293,70 @@ names(DataHS)
 # Specify the variables as numeric or factor
 DataHS[,c(2:10)] %<>% mutate_if(is.character,as.numeric)
 
-# Morphological and functional parameters
-Affin=DataHS$Affin; AffinL=DataHS$AffinL; AffinU=DataHS$AffinU
-Satur=DataHS$Satur; SaturL=DataHS$SaturL; SaturU=DataHS$SaturU
-GrowM=DataHS$Grow; GrowML=DataHS$GrowL; GrowMU=DataHS$GrowU
+# Calculate maximum growth rates
+GrowM=DataHS$Grow
+GrowML=DataHS$GrowL
+GrowMU=DataHS$GrowU
+
+# Calculate affinity constants
+Affin=DataHS$Affin
+AffinL=DataHS$AffinL
+AffinU=DataHS$AffinU
+
+# Calculate half-saturation constants
+Satur=DataHS$Satur
+SaturL=DataHS$SaturL
+SaturU=DataHS$SaturU
+
+
+#######################################################
+### Estimation of prey morphology and stoichiometry ###
+#######################################################
+
+# Import the dataset
+DataST=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Prey Stoichiometry/Data_SP.txt", h=T, dec=",")
+summary(DataST)
+names(DataST)
+
+# Specify the variables as numeric or factor
+DataST[,c(2,4)] %<>% mutate_if(is.character,as.numeric)
+
+# Calculate mean element ratios
+DataST=subset(DataST, Element=="CellCN")
+DataST=setDT(DataST)[, .(Mass=mean(Mass),MassL=mean(Mass)-sd(Mass),MassU=mean(Mass)+sd(Mass)), by=list(Strain)]
+DataST=as.data.frame(DataST)
+
+# Calculate particle sizes
 Area=c(3.23,1.78,1.71,1.08,1.21,1.36)
 AreaL=c(0.93,0.60,0.60,0.73,0.67,0.91)
 AreaU=c(5.53,2.96,2.82,1.42,1.74,1.81)
 
+# Calculate stoichiometric ratios
+Stoichio=c(round(DataST[,2],2))
+StoichioL=c(round(DataST[,3],2))
+StoichioU=c(round(DataST[,4],2))
+
+
+############################
+### Combine the datasets ###
+############################
+
 # Create the datasets
-Data=data.frame(Strain=unique(DataFR$Strain),Attack=Attacks[,2],Handling=Handlings[,2],PreyG=GrowAG[,2],PredG=GrowRG[,2],Area=Area,Affin=Affin,Satur=Satur,PreyGM=GrowM) 
-DataL=data.frame(Strain=unique(DataFR$Strain),AttackL=Attacks[,3],HandlingL=Handlings[,3],PreyGL=GrowAG[,3],PredGL=GrowRG[,3],AreaL=AreaL,AffinL=AffinL,SaturL=SaturL,PreyGML=GrowML)
-DataU=data.frame(Strain=unique(DataFR$Strain),AttackU=Attacks[,4],HandlingU=Handlings[,4],PreyGU=GrowAG[,4],PredGU=GrowRG[,4],AreaU=AreaU,AffinU=AffinU,SaturU=SaturU,PreyGMU=GrowMU)
-Data[,c(2:9)]=round(Data[,c(2:9)],4); DataL[,c(2:9)]=round(DataL[,c(2:9)],4); DataU[,c(2:9)]=round(DataU[,c(2:9)],4)
+Data=data.frame(Strain=unique(DataFR$Strain),Attack=Attacks[,2],Handling=Handlings[,2],PreyG=GrowAG[,2],PredG=GrowRG[,2],Area=Area,Stoichio=Stoichio,PreyGM=GrowM,Affin=Affin,Satur=Satur) 
+DataL=data.frame(Strain=unique(DataFR$Strain),AttackL=Attacks[,3],HandlingL=Handlings[,3],PreyGL=GrowAG[,3],PredGL=GrowRG[,3],AreaL=AreaL,StoichioL=StoichioL,PreyGML=GrowML,AffinL=AffinL,SaturL=SaturL)
+DataU=data.frame(Strain=unique(DataFR$Strain),AttackU=Attacks[,4],HandlingU=Handlings[,4],PreyGU=GrowAG[,4],PredGU=GrowRG[,4],AreaU=AreaU,StoichioU=StoichioU,PreyGMU=GrowMU,AffinU=AffinU,SaturU=SaturU)
+Data[,c(2:10)]=round(Data[,c(2:10)],4); DataL[,c(2:10)]=round(DataL[,c(2:10)],4); DataU[,c(2:10)]=round(DataU[,c(2:10)],4)
 
 # Melt the dataset
-MeltData=melt(Data, id.vars=c("Strain","PreyG","Affin","Satur","PreyGM")); colnames(MeltData)[6:7]=c("Trait","Value")
-MeltDataL=melt(DataL, id.vars=c("Strain","PreyGL","AffinL","SaturL","PreyGML")); colnames(MeltDataL)[6:7]=c("TraitL","ValueL")
-MeltDataU=melt(DataU, id.vars=c("Strain","PreyGU","AffinU","SaturU","PreyGMU")); colnames(MeltDataU)[6:7]=c("TraitU","ValueU")
+MeltData=melt(Data, id.vars=c("Strain","PreyG","PreyGM","Affin","Satur")); colnames(MeltData)[6:7]=c("Trait","Value")
+MeltDataL=melt(DataL, id.vars=c("Strain","PreyGL","PreyGML","AffinL","SaturL")); colnames(MeltDataL)[6:7]=c("TraitL","ValueL")
+MeltDataU=melt(DataU, id.vars=c("Strain","PreyGU","PreyGMU","AffinU","SaturU")); colnames(MeltDataU)[6:7]=c("TraitU","ValueU")
 
 # Combine the datasets
 MeltData=cbind(MeltData[,c(1:7)],MeltDataL[,c(2:5,7)],MeltDataU[,c(2:5,7)])
 MeltData=MeltData[,c("Strain","Trait","PreyG","PreyGL","PreyGU","PreyGM","PreyGML","PreyGMU","Affin","AffinL","AffinU","Satur","SaturL","SaturU","Value","ValueL","ValueU")]
+MeltData=subset(MeltData, !Trait=="PredG")
+MeltData=droplevels(MeltData)
 
 
 ##############################################################
@@ -322,7 +364,7 @@ MeltData=MeltData[,c("Strain","Trait","PreyG","PreyGL","PreyGU","PreyGM","PreyGM
 ##############################################################
 
 # Create a list of traits
-ListData=list(Data[,c(2,9,7,8)],Data[,c(3,9,7,8)],Data[,c(5,9,7,8)],Data[,c(6,9,7,8)])
+ListData=list(Data[,c(2,8,9,10)],Data[,c(3,8,9,10)],Data[,c(6,8,9,10)],Data[,c(7,8,9,10)])
 
 # Calculate regression intercepts
 MeltData$InterPreyG=rep(round(do.call("rbind",lapply(ListData, function(x) {coef(lm(x[,1]~x[,2]))}))[,1],4), each=6)
