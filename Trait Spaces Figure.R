@@ -1,3 +1,34 @@
+setwd("~/LIMNO 2019-2022/Experiments")
+
+rm(list=ls())
+
+library(cowplot)
+library(data.table)
+library(deSolve)
+library(directlabels)
+library(dplyr)
+library(dynlm)
+library(foreach)
+library(ggplot2)
+library(ggrepel)
+library(grid)
+library(gridExtra)
+library(lme4)
+library(lmtest)
+library(magrittr)
+library(nlme)
+library(plotly)
+library(plyr)
+library(propagate)
+library(reshape2)
+library(scales)
+
+###########################################################################
+###########################################################################
+##### TRAIT SPACE FOR PREDATOR-PREY SYSTEM WITH DIFFERENT CLONE TYPES #####
+###########################################################################
+###########################################################################
+
 MeltData$Strain=gsub("CR6", "CR7", MeltData$Strain)
 MeltData$Strain=gsub("CR5", "CR6", MeltData$Strain)
 MeltData=droplevels(subset(MeltData, !Trait=="PredG"))

@@ -23,18 +23,18 @@ library(propagate)
 library(reshape2)
 library(scales)
 
-###################################################################################
-###################################################################################
-##### FUNCTIONAL RESPONSE FOR PREDATOR-PREY SYSTEM WITH DIFFERENT CLONE TYPES #####
-###################################################################################
-###################################################################################
+###########################################################################
+###########################################################################
+##### TRAIT SPACE FOR PREDATOR-PREY SYSTEM WITH DIFFERENT CLONE TYPES #####
+###########################################################################
+###########################################################################
 
 ##################################################################
 ### Estimation of functional response parameters without beads ###
 ##################################################################
 
 # Import the dataset
-DataFR=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response/Data_FRPODE.txt", h=T, dec=",")
+DataFR=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Predator Ingestion/Data_FRPODE.txt", h=T, dec=",")
 summary(DataFR)
 names(DataFR)
 
@@ -100,7 +100,7 @@ DetectionsU=round(Attacks[,4]/(AttackMax[,4]*IngestionsL),4)
 ###############################################################
 
 # Import the dataset
-DataFRB=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Functional Response Beads/Data_FRBPODE.txt", h=T, dec=",")
+DataFRB=read.table("~/Activité Professionnelle/LIMNO 2019-2022/Experiments/Predator Ingestion Beads/Data_FRBPODE.txt", h=T, dec=",")
 summary(DataFRB)
 names(DataFRB)
 
