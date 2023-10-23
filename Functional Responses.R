@@ -84,7 +84,7 @@ Data2$IDens=Data2$IDens/10^5
 
 ggplot(subset(Data, Strain=="CR1"), aes(IDens/10^5, Inges, group=Trial)) + 
   geom_smooth(method="loess", color="mediumpurple3", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -99,7 +99,7 @@ ggplot(subset(Data, Strain=="CR1"), aes(IDens/10^5, Inges, group=Trial)) +
 
 ggplot(subset(Data, Strain=="CR2"), aes(IDens/10^5, Inges, group=Trial)) + 
   geom_smooth(method="loess", color="cornflowerblue", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -114,7 +114,7 @@ ggplot(subset(Data, Strain=="CR2"), aes(IDens/10^5, Inges, group=Trial)) +
 
 ggplot(subset(Data, Strain=="CR3"), aes(IDens/10^5, Inges, group=Trial)) + 
   geom_smooth(method="loess", color="chartreuse3", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -129,7 +129,7 @@ ggplot(subset(Data, Strain=="CR3"), aes(IDens/10^5, Inges, group=Trial)) +
 
 ggplot(subset(Data, Strain=="CR4"), aes(IDens/10^5, Inges, group=Trial)) + 
   geom_smooth(method="loess", color="gold2", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -144,7 +144,7 @@ ggplot(subset(Data, Strain=="CR4"), aes(IDens/10^5, Inges, group=Trial)) +
 
 ggplot(subset(Data, Strain=="CR5"), aes(IDens/10^5, Inges, group=Trial)) + 
   geom_smooth(method="loess", color="darkorange1", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -159,7 +159,7 @@ ggplot(subset(Data, Strain=="CR5"), aes(IDens/10^5, Inges, group=Trial)) +
 
 ggplot(subset(Data, Strain=="CR6"), aes(IDens/10^5, Inges, group=Trial)) + 
   geom_smooth(method="loess", color="tomato2", size=1, se=F) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -264,7 +264,7 @@ tiff('Functional Responses.tiff', units="in", width=8, height=8, res=1000)
 ggplot(Data4, aes(IDensP, IngesP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -283,7 +283,7 @@ ggplot(Data4, aes(IDensP, IngesP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_ribbon(aes(ymin=IngesPLSD, ymax=IngesPUSD, fill=Strain, color=Strain), linetype="solid", size=0.5, alpha=0.3) +
   geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 

@@ -330,7 +330,7 @@ ggplot(Data4, aes(IDensP, IngesP)) +
   geom_line(data=subset(Data4, Selection=="Rejected"), aes(linetype=Model, size=Model), color="grey70") +
   geom_line(data=subset(Data4, Selection=="Accepted"), aes(color=Strain, linetype=Model, size=Model)) +
   geom_point(data=Data, aes(IDens/10^5, Inges, color=Strain), size=2, pch=16) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 

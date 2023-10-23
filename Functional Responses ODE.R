@@ -210,7 +210,7 @@ ggplot(Data5, aes(IDensP, IngesP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_line(data=Data6, aes(color=Strain), linetype="dotted", size=1) +
   geom_point(data=Data, aes(IDens, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
@@ -230,7 +230,7 @@ ggplot(Data5, aes(IDensP, IngesP, group=Strain)) +
   geom_line(data=Data6, aes(color=Strain), linetype="dotted", size=1) +
   geom_ribbon(aes(ymin=IngesPLSD, ymax=IngesPUSD, fill=Strain, color=Strain), linetype="solid", size=0.5, alpha=0.3) +
   geom_point(data=Data, aes(IDens, Inges, color=Strain), size=2, pch=16, position=position_jitter(h=0, w=0.2)) +
-  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~ind^-1*')')) +
+  ylab(expression(italic('B. calyciflorus')~'ingestion rate'~'('*cells~sec^-1~rotifer^-1*')')) +
   xlab(expression(italic('C. reinhardtii')~'density'~'('*10^5~cells~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
