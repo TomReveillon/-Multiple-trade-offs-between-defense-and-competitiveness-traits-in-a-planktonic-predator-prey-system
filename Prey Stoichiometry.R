@@ -87,10 +87,13 @@ PlotFunc=function(x) {
   ggplot(x, aes(Strain, Mass, group=Strain)) +
     geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, outlier.shape=NA) + 
     geom_point(aes(color=Strain), size=1.5, pch=16, alpha=0.7) +
+    ylab(expression('Carbon:nitrogen ratio ratio'~'('*ng~C~ng~N^-1*')')) + xlab(expression(italic('C. reinhardtii')~'strain')) +
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
     theme(axis.title.x=element_blank()) +
+    scale_y_continuous(labels=sprintf(seq(12,20,by=2), fmt="%.0f"), breaks=seq(12,20,by=2), limits=c(12,20)) +
+    scale_x_discrete(labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R6]),expression(C[R7]))) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
     scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
@@ -106,7 +109,5 @@ PlotFunc=function(x) {
 
 tiff('Prey Stoichiometry.tiff', units="in", width=8, height=8, res=1000)
 Panel=lapply(SplitData2[c(3)], PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Carbon:nitrogen ratio'), labels=sprintf(seq(10,20,by=2), fmt="%.0f"), breaks=seq(10,20,by=2), limits=c(10,20))
-Xaxis=textGrob(expression('Strain'), gp=gpar(fontface="bold", fontsize=18), rot=0)
-grid.arrange(grobs=Panel, bottom=Xaxis, ncol=1, nrow=1)
+grid.arrange(grobs=Panel, ncol=1, nrow=1)
 dev.off()
