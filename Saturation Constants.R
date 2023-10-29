@@ -292,7 +292,7 @@ GRCU=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Strain,Nitro
 
 
 #####################################################
-### Calculating saturation and affinity constants ###
+### Calculating affinity and saturation constants ###
 #####################################################
 
 # Create datasets
@@ -305,6 +305,11 @@ Data6$Nitro=as.numeric(Data6$Nitro)
 Data6[,c(3:8)]=round(Data6[,c(3:8)],4)
 Data6=Data6[order(Data6$Strain,Data6$Nitro),]
 
+# Extract combinations of names
+Names=unique(Data6[,c("Strain")])
+Names=Names[order(Names$Strain),]
+Strain=Names$Strain
+
 # Split the dataset
 SplitData6=split(Data6, list(Data6$Strain))
 
@@ -313,23 +318,25 @@ FuncH=function(x) {OutH=summary(nls(GR~(GRM*Nitro)/(Nitro + K), start=c(GRM=0.1,
 OutH=lapply(SplitData6, FuncH)
 
 # Extract half-saturation constants
-Satur=round(c(coef(OutH[[1]])[2],coef(OutH[[2]])[2],coef(OutH[[3]])[2],coef(OutH[[4]])[2],coef(OutH[[5]])[2],coef(OutH[[6]])[2]),4)
-SaturL=round(c(coef(OutH[[1]])[2]-coef(OutH[[1]])[4],coef(OutH[[2]])[2]-coef(OutH[[2]])[4],coef(OutH[[3]])[2]-coef(OutH[[3]])[4],coef(OutH[[4]])[2]-coef(OutH[[4]])[4],coef(OutH[[5]])[2]-coef(OutH[[5]])[4],coef(OutH[[6]])[2]-coef(OutH[[6]])[4]),4)
-SaturU=round(c(coef(OutH[[1]])[2]+coef(OutH[[1]])[4],coef(OutH[[2]])[2]+coef(OutH[[2]])[4],coef(OutH[[3]])[2]+coef(OutH[[3]])[4],coef(OutH[[4]])[2]+coef(OutH[[4]])[4],coef(OutH[[5]])[2]+coef(OutH[[5]])[4],coef(OutH[[6]])[2]+coef(OutH[[6]])[4]),4)
+FuncH2=function(x) {c(Satur=coef(x)[2],SaturLSD=coef(x)[2]-coef(x)[4],SaturUSD=coef(x)[2]+coef(x)[4])}
+OutH2=round(as.data.frame(do.call("rbind",lapply(OutH, FuncH2))),4)
+OutH2=cbind(Strain=Strain,OutH2)
+rownames(OutH2)=c()
 
 # Extract maximum intrinsic growth rates
-Grow=round(c(coef(OutH[[1]])[1],coef(OutH[[2]])[1],coef(OutH[[3]])[1],coef(OutH[[4]])[1],coef(OutH[[5]])[1],coef(OutH[[6]])[1]),4)
-GrowL=round(c(coef(OutH[[1]])[1]-coef(OutH[[1]])[3],coef(OutH[[2]])[1]-coef(OutH[[2]])[3],coef(OutH[[3]])[1]-coef(OutH[[3]])[3],coef(OutH[[4]])[1]-coef(OutH[[4]])[3],coef(OutH[[5]])[1]-coef(OutH[[5]])[3],coef(OutH[[6]])[1]-coef(OutH[[6]])[3]),4)
-GrowU=round(c(coef(OutH[[1]])[1]+coef(OutH[[1]])[3],coef(OutH[[2]])[1]+coef(OutH[[2]])[3],coef(OutH[[3]])[1]+coef(OutH[[3]])[3],coef(OutH[[4]])[1]+coef(OutH[[4]])[3],coef(OutH[[5]])[1]+coef(OutH[[5]])[3],coef(OutH[[6]])[1]+coef(OutH[[6]])[3]),4)
+FuncH3=function(x) {c(Grow=coef(x)[1],GrowLSD=coef(x)[1]-coef(x)[3],GrowUSD=coef(x)[1]+coef(x)[3])}
+OutH3=round(as.data.frame(do.call("rbind",lapply(OutH, FuncH3))),4)
+OutH3=cbind(Strain=Strain,OutH3)
+rownames(OutH3)=c()
 
 # Extract affinity constants
-Affin=round(c(Grow[1]/Satur[1],Grow[2]/Satur[2],Grow[3]/Satur[3],Grow[4]/Satur[4],Grow[5]/Satur[5],Grow[6]/Satur[6]),4)
-AffinL=round(c(GrowL[1]/Satur[1],GrowL[2]/Satur[2],GrowL[3]/Satur[3],GrowL[4]/Satur[4],GrowL[5]/Satur[5],GrowL[6]/Satur[6]),4)
-AffinU=round(c(GrowU[1]/Satur[1],GrowU[2]/Satur[2],GrowU[3]/Satur[3],GrowU[4]/Satur[4],GrowU[5]/Satur[5],GrowU[6]/Satur[6]),4)
+FuncH4=function(x) {c(Affin=coef(x)[1]/coef(x)[2],AffinLSD=(coef(x)[1]-coef(x)[3])/coef(x)[2],AffinUSD=(coef(x)[1]+coef(x)[3])/coef(x)[2])}
+OutH4=round(as.data.frame(do.call("rbind",lapply(OutH, FuncH4))),4)
+OutH4=cbind(Strain=Strain,OutH4)
+rownames(OutH4)=c()
 
 # Export the dataset
-Strain=unique(Data6$Strain)
-Data7=data.frame(Strain,Satur,SaturL,SaturU,Affin,AffinL,AffinU,Grow,GrowL,GrowU)
+Data7=cbind(OutH3[,c(1:4)],OutH4[,c(2:4)],OutH2[,c(2:4)])
 write.table(Data7, file="Data_HSP.txt", sep="\t", row.names=F)
 
 # Monod model
