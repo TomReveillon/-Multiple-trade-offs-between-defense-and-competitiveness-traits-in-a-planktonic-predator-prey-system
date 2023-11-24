@@ -174,7 +174,6 @@ FuncLo=function(Model,Day) {
   return(Out)
 }
 
-
 # Mortality model
 SetMo=function(mCall,LHS,data) {
   xy=sortedXyData(mCall[["x"]],LHS,data)
@@ -238,7 +237,6 @@ SummaLo=bind_rows(lapply(OutLo, function (x) x[c("Summary")]))
 SummaLo=round(cbind(do.call("rbind",SummaLo)),4)
 rownames(SummaLo)=c()
 ModelLo=unlist(lapply(OutLo, function (x) x[c("Model")]),recursive=F)
-
 
 # Mortality model
 ModMo=function(x) {
