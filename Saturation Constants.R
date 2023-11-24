@@ -245,17 +245,23 @@ Data4=Data4[order(Data4$Strain,Data4$Nitro),]
 # Select the time period
 Data4=as.data.frame(Data4 %>% group_by(Strain,Nitro) %>% dplyr::slice(11:n()))
 
+# Extract combinations of names
+Names=unique(Data4[,c("Species","Nitro")])
+Names=Names[order(Names$Nitro,Names$Species),]
+Species=Names$Species; Nitro=Names$Nitro
+
 # Split the dataset
 SplitData4=split(Data4, list(Data4$Strain,Data4$Nitro))
 
 # Mean per capita growth rate models
-ModelGR=function(x) {coef(summary(lm(log(DensP+1)~DayP, data=x)))[2,1]}
-ModelGRSD=function(x) {coef(summary(lm(log(DensP+1)~DayP, data=x)))[2,2]}
+ModelGR=function(x) {summary(lm(log(DensP+1)~DayP, data=x))}
+OutGR=lapply(SplitData4, ModelGR)
 
 # Calculate mean per capita growth rates
-MeanGR=c(do.call("rbind",lapply(SplitData4, ModelGR)))
-MeanGRL=round(MeanGR-c(do.call("rbind",lapply(SplitData4, ModelGRSD))),2)
-MeanGRU=round(MeanGR+c(do.call("rbind",lapply(SplitData4, ModelGRSD))),2)
+ModelGR2=function(x) {c(MeanGR=coef(x)[2],MeanGRLSD=coef(x)[2]-coef(x)[4],MeanGRUSD=coef(x)[2]+coef(x)[4])}
+OutGR2=round(as.data.frame(do.call("rbind",lapply(OutGR, ModelGR2))),4)
+OutGR2=cbind(Species=Species,Nitro=Nitro,OutGR2)
+rownames(OutGR2)=c()
 
 # Subset important columns
 SplitData5=lapply(SplitData4, "[", c("DensP","DayP"))
@@ -286,9 +292,10 @@ Data5=subset(data.frame(Strain,Nitro,DayP,Model), !DayP %in% c("9.8","10"))
 Data5=data.frame(Data5,RateGR[,c(1,3,4)]); Data5=Data5[,c(1,2,3,5,6,7,4)]
 
 # Find maximum consecutive per capita growth rates
-GRC=as.data.frame(setDT(Data5)[, .SD[which.max(GrowP)], by=list(Strain,Nitro)])[,4]
-GRCL=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPLSD)], by=list(Strain,Nitro)])[,5]
-GRCU=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Strain,Nitro)])[,6]
+OutGR3=data.frame(Species=rep(unique(Species),8), Nitro=rep(unique(Nitro), each=6))
+OutGR3$GrowCM=as.data.frame(setDT(Data5)[, .SD[which.max(GrowP)], by=list(Species,Nitro)])[,4]
+OutGR3$GrowCMLSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPLSD)], by=list(Species,Nitro)])[,5]
+OutGR3$GrowCMUSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Species,Nitro)])[,6]
 
 
 #####################################################
@@ -296,14 +303,15 @@ GRCU=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Strain,Nitro
 #####################################################
 
 # Create datasets
-Data6=data.frame(Strain=rep(unique(Data4$Strain),8), Nitro=rep(unique(Data4$Nitro), each=6), GR=MeanGR, GRL=MeanGRL, GRU=MeanGRU, GRC=GRC, GRCL=GRCL, GRCU=GRCU)
-Data0=data.frame(Strain=unique(Data4$Strain), Nitro=rep(0,6), GR=rep(0,6), GRL=rep(0,6), GRU=rep(0,6), GRC=rep(0,6), GRCL=rep(0,6), GRCU=rep(0,6))
+Data6=cbind(OutGR3[,c(1:2)], Grow=OutGR2[,3], GrowL=OutGR2[,4], GrowU=OutGR2[,5], GrowC=OutGR3[,3], GrowCL=OutGR3[,4], GrowCU=OutGR3[,5])
+Data0=cbind(OutGR3[c(1:8),c(1)], rep(0,6), Grow=rep(0,6), GrowL=rep(0,6), GrowU=rep(0,6), GrowC=rep(0,6), GrowCL=rep(0,6), GrowCU=rep(0,6))
 
 # Combine datasets
 Data6=rbind(Data0,Data6)
 Data6$Nitro=as.numeric(Data6$Nitro)
 Data6[,c(3:8)]=round(Data6[,c(3:8)],4)
 Data6=Data6[order(Data6$Strain,Data6$Nitro),]
+Data6=subset(Data6, Nitro < 50)
 
 # Extract combinations of names
 Names=unique(Data6[,c("Strain")])
@@ -314,7 +322,7 @@ Strain=Names$Strain
 SplitData6=split(Data6, list(Data6$Strain))
 
 # Monod model
-FuncH=function(x) {OutH=summary(nls(GR~(GRM*Nitro)/(Nitro + K), start=c(GRM=0.1, K=5), data=x))}
+FuncH=function(x) {OutH=summary(nls(Grow~(GrowM*Nitro)/(Nitro + K), start=c(GrowM=0.1, K=5), data=x))}
 OutH=lapply(SplitData6, FuncH)
 
 # Extract half-saturation constants
@@ -340,7 +348,7 @@ Data7=cbind(OutH3[,c(1:4)],OutH4[,c(2:4)],OutH2[,c(2:4)])
 write.table(Data7, file="Data_HSP.txt", sep="\t", row.names=F)
 
 # Monod model
-FuncH=function(x) {OutH=nls(GR~(GRM*Nitro)/(Nitro + K), start=c(GRM=0.1, K=5), data=x)}
+FuncH=function(x) {OutH=nls(Grow~(GrowM*Nitro)/(Nitro + K), start=c(GrowM=0.1, K=5), data=x)}
 ModelH=lapply(SplitData6, FuncH)
 
 # Set the predicted dataset
@@ -349,12 +357,12 @@ NitroP=as.numeric(rep(seq(0,30,by=0.2),6))
 Data8=data.frame(Strain,NitroP)
 
 # Saturation model
-GRP=list(); GRPSD=list(); GRPLCI=list(); GRPUCI=list()
-for (i in 1:length(ModelH)) {GRP[[i]]=predict(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)))}
-for (i in 1:length(ModelH)) {GRPSD[[i]]=predictNLS(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,3]}
-for (i in 1:length(ModelH)) {GRPLCI[[i]]=predictNLS(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,5]}
-for (i in 1:length(ModelH)) {GRPUCI[[i]]=predictNLS(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,6]}
-DataH=data.frame(Data8[c(1:906),], GRP=unlist(GRP), GRPLSD=unlist(GRP)-unlist(GRPSD), GRPUSD=unlist(GRP)+unlist(GRPSD), GRPLCI=unlist(GRPLCI), GRPUCI=unlist(GRPUCI), Model="Monod")
+GrowP=list(); GrowPSD=list(); GrowPLCI=list(); GrowPUCI=list()
+for (i in 1:length(ModelH)) {GrowP[[i]]=predict(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)))}
+for (i in 1:length(ModelH)) {GrowPSD[[i]]=predictNLS(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,3]}
+for (i in 1:length(ModelH)) {GrowPLCI[[i]]=predictNLS(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,5]}
+for (i in 1:length(ModelH)) {GrowPUCI[[i]]=predictNLS(ModelH[[i]], newdata=data.frame(Nitro=unique(NitroP)), interval="confidence", alpha=0.05, nsim=10000)[[1]][,6]}
+DataH=data.frame(Data8[c(1:906),], GrowP=unlist(GrowP), GrowPLSD=unlist(GrowP)-unlist(GrowPSD), GrowPUSD=unlist(GrowP)+unlist(GrowPSD), GrowPLCI=unlist(GrowPLCI), GrowPUCI=unlist(GrowPUCI), Model="Monod")
 
 
 ##################################################
@@ -368,9 +376,9 @@ Data9[,c(3:7)][Data9[,c(3:7)]<0]=0
 Data9=Data9[order(Data9$Strain),]
 
 tiff('Saturation Constants.tiff', units="in", width=8, height=8, res=1000)
-ggplot(Data9, aes(NitroP, GRP, group=Strain)) +
+ggplot(Data9, aes(NitroP, GrowP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
-  geom_point(data=Data6, aes(Nitro, GR, color=Strain), size=2, pch=16) +
+  geom_point(data=Data6, aes(Nitro, Grow, color=Strain), size=2, pch=16) +
   ylab(expression(italic('C. reinhardtii')~'growth rate'~'('*day^-1*')')) + 
   xlab(expression('Nitrate concentration'~'('*µmol~NO[3]^{'-'}~mL^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  

@@ -87,7 +87,6 @@ FuncLi=function(Model, Day) {
   return(Out)
 }
 
-
 # Exponential model
 SetEx=function(mCall,LHS,data) {
   xy=sortedXyData(mCall[["x"]],LHS,data)
@@ -122,7 +121,6 @@ FuncEx=function(Model,Day) {
   return(Out)
 }
 
-
 # Logistic model
 SetLo=function(Coef){
   K=Coef[1]; r=1/(Coef[3]); b=K/(1 + exp(Coef[2]/Coef[3]))
@@ -156,7 +154,6 @@ FuncLo=function(Model,Day) {
   return(Out)
 }
 
-
 # Gompertz model
 SetGo=function(Coef){
   K=Coef[1]; b=K/exp(Coef[2]); r=-log(Coef[3])
@@ -189,7 +186,6 @@ FuncGo=function(Model,Day) {
   Out=list(Model=Model, Summary=Summary, Parameters=Parameters, Rates=Rates)
   return(Out)
 }
-
 
 # Mortality model
 SetMo=function(mCall,LHS,data) {
@@ -258,7 +254,6 @@ SummaLi=round(as.data.frame(do.call("rbind",SummaLi)),4)
 rownames(SummaLi)=c()
 ModelLi=unlist(lapply(OutLi, function (x) x[c("Model")]),recursive=F)
 
-
 # Exponential model
 ModEx=function(x) {
   FitEx=nls(log(MeanDens) ~ SSexpo(Day, r, b), data=x)
@@ -276,7 +271,6 @@ SummaEx=bind_rows(lapply(OutEx, function (x) x[c("Summary")]))
 SummaEx=round(as.data.frame(do.call("rbind",SummaEx)),4)
 rownames(SummaEx)=c()
 ModelEx=unlist(lapply(OutEx, function (x) x[c("Model")]),recursive=F)
-
 
 # Logistic model
 ModLo=function(x) {
@@ -296,7 +290,6 @@ SummaLo=round(as.data.frame(do.call("rbind",SummaLo)),4)
 rownames(SummaLo)=c()
 ModelLo=unlist(lapply(OutLo, function (x) x[c("Model")]),recursive=F)
 
-
 # Gompertz model
 ModGo=function(x) {
   FitGo=nls(log(MeanDens) ~ SSgompertz(Day, b, K, r), data=x)
@@ -314,7 +307,6 @@ SummaGo=bind_rows(lapply(OutGo, function (x) x[c("Summary")]))
 SummaGo=round(as.data.frame(do.call("rbind",SummaGo)),4)
 rownames(SummaGo)=c()
 ModelGo=unlist(lapply(OutGo, function (x) x[c("Model")]),recursive=F)
-
 
 # Mortality model
 ModMo=function(x) {
