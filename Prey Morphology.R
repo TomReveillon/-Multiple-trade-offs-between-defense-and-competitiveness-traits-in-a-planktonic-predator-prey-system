@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Prey Morphology")
+setwd("~/LIMNO 2019-2023/Experiments/Prey Morphology")
 
 rm(list=ls())
 
@@ -45,7 +45,8 @@ DataInter=ldply(Files, read.table, sep="\t", fill=T, header=T, dec=",")
 lapply(DataInter, class)
 
 # Specify the variables as numeric numbers
-DataInter %<>% mutate_if(is.factor,as.numeric); DataInter %<>% mutate_if(is.integer,as.numeric)
+DataInter %<>% mutate_if(is.integer,as.numeric)
+DataInter %<>% mutate_if(is.factor,as.numeric)
 
 # Create strain identities
 IDCR1=c(rep("CR1",5000))
