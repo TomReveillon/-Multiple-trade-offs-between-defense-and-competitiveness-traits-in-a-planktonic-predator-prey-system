@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Prey Stoichiometry")
+setwd("~/LIMNO 2019-2023/Experiments/Prey Stoichiometry")
 
 rm(list=ls())
 
@@ -38,8 +38,8 @@ summary(Data)
 Data[,c(3:12)] %<>% mutate_if(is.character,as.numeric)
 
 # Calculate mean controls
-Data$WaterC=rep(ddply(Data, .(Strain), summarize, MediaC=round(mean(WaterC),6))[,2], each=3)
-Data$WaterN=rep(ddply(Data, .(Strain), summarize, MediaC=round(mean(WaterN),6))[,2], each=3)
+Data$WaterC=rep(ddply(Data, .(Strain), summarize, WaterC=round(mean(WaterC),6))[,2], each=3)
+Data$WaterN=rep(ddply(Data, .(Strain), summarize, WaterN=round(mean(WaterN),6))[,2], each=3)
 Data$MediaC=rep(ddply(Data, .(Strain), summarize, MediaC=round(mean(MediaC),6))[,2], each=3)
 Data$MediaN=rep(ddply(Data, .(Strain), summarize, MediaN=round(mean(MediaN),6))[,2], each=3)
 
