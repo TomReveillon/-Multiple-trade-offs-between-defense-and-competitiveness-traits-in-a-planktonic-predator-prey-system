@@ -423,7 +423,7 @@ Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
 Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
 Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
 Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
-Yaxis=textGrob(expression('Per capita growth rate'~italic(r[B])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=24), rot=90)
+Yaxis=textGrob(expression('Fitness growth rate'~italic(r[B])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=24), rot=90)
 Plot1=grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=2)
 
 PlotFunc=function(x) {
@@ -454,9 +454,9 @@ Panel[[1]]=Panel[[1]] + annotate("text", label=NA, y=1.6, x=0.18, color="black",
 Panel[[2]]=Panel[[2]] + annotate("text", label=NA, y=1.6, x=9.0, color="black", size=8, fontface="italic")
 Panel[[3]]=Panel[[3]] + annotate("text", label="NS", y=1.6, x=6.0, color="black", size=8, fontface="italic")
 Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.5,0,0.40),"cm"))
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.5,0,0.35),"cm"))
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.5,0,0.35),"cm"))
-Yaxis=textGrob(expression('Per capita growth rate'~italic(r[C])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=24), rot=90)
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.5,0,0.40),"cm"))
+Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.5,0,0.40),"cm"))
+Yaxis=textGrob(expression('Fitness growth rate'~italic(r[C])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=24), rot=90)
 Plot2=grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=2)
 
 tiff('[Labels] Correlation Traits.tiff', units="in", width=13.7, height=27.5, res=1000)
