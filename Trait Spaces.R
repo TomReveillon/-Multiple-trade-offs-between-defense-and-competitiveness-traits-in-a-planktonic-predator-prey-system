@@ -29,9 +29,9 @@ library(scales)
 ###########################################################################
 ###########################################################################
 
-##################################################################
-### Estimation of functional response parameters without beads ###
-##################################################################
+####################################################
+### Estimation of functional response parameters ###
+####################################################
 
 # Import the dataset
 DataFR=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Predator Ingestion/Data_FRPODE.txt", h=T, dec=",")
@@ -95,9 +95,9 @@ DetectionsL=round(Attacks[,3]/(AttackMax[,3]*IngestionsU),4)
 DetectionsU=round(Attacks[,4]/(AttackMax[,4]*IngestionsL),4)
 
 
-###############################################################
-### Estimation of prey growth rate parameters without beads ###
-###############################################################
+#################################################
+### Estimation of prey growth rate parameters ###
+#################################################
 
 # Import the dataset
 DataAG=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Prey Growth/Data_AGP.txt", h=T, dec=",")
@@ -128,9 +128,9 @@ GRU=round(GR+c(do.call("rbind",lapply(SplitDataAG, ModGRSD))),4)
 GrowAG=data.frame(Strain=Strain, GrowAG=GR, GrowAGL=GRL, GrowAGU=GRU)
 
 
-###################################################################
-### Estimation of predator growth rate parameters without beads ###
-###################################################################
+#####################################################
+### Estimation of predator growth rate parameters ###
+#####################################################
 
 # Import the dataset
 DataRG=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Predator Growth/Data_RGP.txt", h=T, dec=",")
