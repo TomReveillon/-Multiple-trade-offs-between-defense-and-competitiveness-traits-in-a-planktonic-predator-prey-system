@@ -29,9 +29,9 @@ library(scales)
 ###########################################################################
 ###########################################################################
 
-####################################################
-### Estimation of functional response parameters ###
-####################################################
+##################################################################
+### Estimation of functional response parameters without beads ###
+##################################################################
 
 # Import the dataset
 DataFR=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Predator Ingestion/Data_FRPODE.txt", h=T, dec=",")
@@ -95,9 +95,94 @@ DetectionsL=round(Attacks[,3]/(AttackMax[,3]*IngestionsU),4)
 DetectionsU=round(Attacks[,4]/(AttackMax[,4]*IngestionsL),4)
 
 
-#################################################
-### Estimation of prey growth rate parameters ###
-#################################################
+###############################################################
+### Estimation of functional response parameters with beads ###
+###############################################################
+
+# Import the dataset
+DataFRB=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Predator Ingestion Beads/Data_FRBPODE.txt", h=T, dec=",")
+summary(DataFRB)
+names(DataFRB)
+
+# Specify the variables as numeric or factor
+DataFRB[,c(3:6)] %<>% mutate_if(is.character,as.numeric)
+DataFRB$Strain=factor(DataFRB$Strain, levels=unique(DataFRB$Strain))
+DataFRB$Bead=factor(DataFRB$Bead, levels=unique(DataFRB$Bead))
+
+# Split the dataset
+SplitDataFRB=split(DataFRB, list(DataFRB$Strain,DataFRB$Bead))
+
+# Extract combinations of names
+Strain=unique(DataFRB[,c("Strain","Bead")])[,1]
+Bead=unique(DataFRB[,c("Strain","Bead")])[,2]
+
+# Functional response model
+FuncFRB=function(x) {
+  ModFRB=nls(IngesP ~ (a * IDensP) / (1 + a * h * IDensP), start=c(a=1.0, h=0.1), data=x)
+  ModFRBL=nls(IngesPLSD ~ (a * IDensP) / (1 + a * h * IDensP), start=c(a=1.0, h=0.1), data=x)
+  ModFRBU=nls(IngesPUSD ~ (a * IDensP) / (1 + a * h * IDensP), start=c(a=1.0, h=0.1), data=x)
+  AttackB=data.frame(AttackB=coef(ModFRB)[1], AttackBL=coef(ModFRBL)[1], AttackBU=coef(ModFRBU)[1])
+  HandlingB=data.frame(HandlingB=coef(ModFRB)[2], HandlingBL=coef(ModFRBU)[2], HandlingBU=coef(ModFRBL)[2])
+  Parameters=list(AttackB=AttackB, HandlingB=HandlingB)
+}
+OutFRB=lapply(SplitDataFRB, FuncFRB)
+
+# Calculate the attack rates
+AttacksB=bind_rows(lapply(OutFRB, function (x) x[c("AttackB")]))
+AttacksB=round(as.data.frame(do.call("rbind",AttacksB)),4)
+AttacksB=cbind(Strain=Strain,Bead=Bead,AttacksB)
+rownames(AttacksB)=c()
+
+# Calculate the handling times
+HandlingsB=bind_rows(lapply(OutFRB, function (x) x[c("HandlingB")]))
+HandlingsB=round(as.data.frame(do.call("rbind",HandlingsB)),4)
+HandlingsB=cbind(Strain=Strain,Bead=Bead,HandlingsB)
+rownames(HandlingsB)=c()
+
+# Include bead parameters
+BeadC=DataFRB$IDensP[1:900]*0.0000
+BeadL=DataFRB$IDensP[1:900]*0.0625
+BeadM=DataFRB$IDensP[1:900]*0.1250
+BeadH=DataFRB$IDensP[1:900]*0.2500
+DataFRB$IBeadP=c(BeadC,BeadL,BeadM,BeadH)
+
+# Include functional response parameters
+DataFRB$Attack=rep(AttacksB[,3][1:6], each=150)
+DataFRB$AttackL=rep(AttacksB[,4][1:6], each=150)
+DataFRB$AttackU=rep(AttacksB[,5][1:6], each=150)
+DataFRB$Handling=rep(HandlingsB[,3][1:6], each=150)
+DataFRB$HandlingL=rep(HandlingsB[,4][1:6], each=150)
+DataFRB$HandlingU=rep(HandlingsB[,5][1:6], each=150)
+
+# Split the dataset
+SplitDataC=split(DataFRB, list(DataFRB$Strain))
+
+# Functional response model
+FuncC=function(x) {
+  ModC=nls(IngesP ~ (a * IDensP) / (1 + a * h * IDensP + c * IBeadP), start=c(a=1.0, h=0.1, c=1.0), data=x)
+  Coefficient=data.frame(Coefficient=coef(summary(ModC))[3,1], CoefficientSD=coef(summary(ModC))[3,2])
+  Coefficient=data.frame(Coefficient=Coefficient[,1], CoefficientL=Coefficient[,1]-Coefficient[,2], CoefficientU=Coefficient[,1]+Coefficient[,2])
+  Parameters=list(Coefficient=Coefficient)
+}
+OutC=lapply(SplitDataC, FuncC)
+
+# Calculate the bead coefficient
+Coefficient=bind_rows(lapply(OutC, function (x) x[c("Coefficient")]))
+Coefficient=round(as.data.frame(do.call("rbind",Coefficient)),4)
+Coefficient=cbind(Strain=Strain,Coefficient)
+rownames(Coefficient)=c()
+
+# Convert parameters units
+DataFRB$A=round((DataFRB$Attack*60*60*24)/(10^6),4)
+DataFRB$H=round((DataFRB$Handling/60/60/24)*(10^6),4)
+
+# Functional response model
+ModCR=nls(((IngesP*60*60*24)/10^6) ~ (A * (IDensP*10^-1)) / (1 + A * H * (IDensP*10^-1) + c * (IBeadP*10^-1)), start=c(c=1.0), data=subset(DataFRB, Strain=="CR4"))
+
+
+###############################################################
+### Estimation of prey growth rate parameters without beads ###
+###############################################################
 
 # Import the dataset
 DataAG=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Prey Growth/Data_AGP.txt", h=T, dec=",")
@@ -128,9 +213,9 @@ GRU=round(GR+c(do.call("rbind",lapply(SplitDataAG, ModGRSD))),4)
 GrowAG=data.frame(Strain=Strain, GrowAG=GR, GrowAGL=GRL, GrowAGU=GRU)
 
 
-#####################################################
-### Estimation of predator growth rate parameters ###
-#####################################################
+###################################################################
+### Estimation of predator growth rate parameters without beads ###
+###################################################################
 
 # Import the dataset
 DataRG=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Predator Growth/Data_RGP.txt", h=T, dec=",")
@@ -159,6 +244,41 @@ GR=round(c(do.call("rbind",lapply(SplitDataRG, ModGR))),4)
 GRL=round(GR-c(do.call("rbind",lapply(SplitDataRG, ModGRSD))),4)
 GRU=round(GR+c(do.call("rbind",lapply(SplitDataRG, ModGRSD))),4)
 GrowRG=data.frame(Strain=Strain, GrowRG=GR, GrowRGL=GRL, GrowRGU=GRU)
+
+
+################################################################
+### Estimation of predator growth rate parameters with beads ###
+################################################################
+
+# Import the dataset
+DataRGB=read.table("~/Activité Professionnelle/LIMNO 2019-2023/Experiments/Predator Growth Beads/Data_RGBP.txt", h=T, dec=",")
+summary(DataRGB)
+names(DataRGB)
+
+# Specify the variables as numeric or factor
+DataRGB[,c(3:8)] %<>% mutate_if(is.character,as.numeric)
+DataRGB$Strain=factor(DataRGB$Strain, levels=unique(DataRGB$Strain))
+DataRGB$Bead=factor(DataRGB$Bead, levels=unique(DataRGB$Bead))
+
+# Select the time period
+DataRGB=as.data.frame(DataRGB %>% group_by(Strain,Bead) %>% dplyr::slice(0:n()))
+
+# Split the dataset
+SplitDataRGB=split(DataRGB, list(DataRGB$Bead,DataRGB$Strain))
+
+# Extract combinations of names
+Strain=unique(DataRGB[,c("Strain","Bead")])[,1]
+Bead=unique(DataRGB[,c("Strain","Bead")])[,2]
+
+# Calculate the intrinsic growth rates
+ModGR=function(x) {coef(summary(lm(DensP~DayP, data=subset(x, DayP <= 5))))[2,1]}
+ModGRSD=function(x) {coef(summary(lm(DensP~DayP, data=subset(x, DayP <= 5))))[2,2]}
+
+# Calculate the intrinsic growth rates
+GR=round(c(do.call("rbind",lapply(SplitDataRGB, ModGR))),4)
+GRL=round(GR-c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
+GRU=round(GR+c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
+GrowRGB=data.frame(Strain=Strain, Bead=Bead, GrowRGB=GR, GrowRGBL=GRL, GrowRGBU=GRU)
 
 
 ####################################################
@@ -270,436 +390,217 @@ MeltData$SigAffin=ifelse(MeltData$SigAffin > 0.05, "No", "Yes")
 MeltData$SigSatur=ifelse(MeltData$SigSatur > 0.05, "No", "Yes")
 
 
-################################################
-### Trade-off of defense and competitiveness ###
-################################################
-
-MeltData$Strain=gsub("CR6", "CR7", MeltData$Strain)
-MeltData$Strain=gsub("CR5", "CR6", MeltData$Strain)
-MeltData=droplevels(subset(MeltData, !Trait=="PredG"))
-Labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R6]),expression(C[R7]))
-SplitData=split(MeltData, list(MeltData$Trait))
-
-# Simulate regression solutions
-DataA=data.frame(
-  XPreyG=seq(0.09,0.36,length.out=1000),
-  XAffin=seq(0.00,0.60,length.out=1000),
-  XSatur=seq(0.40,2.80,length.out=1000),
-  YPreyG=SplitData[[1]]$InterPreyG + SplitData[[1]]$SlopePreyG*seq(0.09,0.36,length.out=1000),
-  YAffin=SplitData[[1]]$InterAffin + SplitData[[1]]$SlopeAffin*seq(0.00,0.60,length.out=1000),
-  YSatur=SplitData[[1]]$InterSatur + SplitData[[1]]$SlopeSatur*seq(0.40,2.80,length.out=1000))
-
-DataH=data.frame(
-  XPreyG=seq(0.09,0.36,length.out=1000),
-  XAffin=seq(0.00,0.60,length.out=1000),
-  XSatur=seq(0.40,2.80,length.out=1000),
-  YPreyG=SplitData[[2]]$InterPreyG + SplitData[[2]]$SlopePreyG*seq(0.09,0.36,length.out=1000),
-  YAffin=SplitData[[2]]$InterAffin + SplitData[[2]]$SlopeAffin*seq(0.00,0.60,length.out=1000),
-  YSatur=SplitData[[2]]$InterSatur + SplitData[[2]]$SlopeSatur*seq(0.40,2.80,length.out=1000))
-
-DataS=data.frame(
-  XPreyG=seq(0.09,0.36,length.out=1000),
-  XAffin=seq(0.00,0.60,length.out=1000),
-  XSatur=seq(0.40,2.80,length.out=1000),
-  YPreyG=SplitData[[3]]$InterPreyG + SplitData[[3]]$SlopePreyG*seq(0.09,0.36,length.out=1000),
-  YAffin=SplitData[[3]]$InterAffin + SplitData[[3]]$SlopeAffin*seq(0.00,0.60,length.out=1000),
-  YSatur=SplitData[[3]]$InterSatur + SplitData[[3]]$SlopeSatur*seq(0.40,2.80,length.out=1000))
-
-DataCN=data.frame(
-  XPreyG=seq(0.09,0.36,length.out=1000),
-  XAffin=seq(0.00,0.60,length.out=1000),
-  XSatur=seq(0.40,2.80,length.out=1000),
-  YPreyG=SplitData[[4]]$InterPreyG + SplitData[[4]]$SlopePreyG*seq(0.09,0.36,length.out=1000),
-  YAffin=SplitData[[4]]$InterAffin + SplitData[[4]]$SlopeAffin*seq(0.00,0.60,length.out=1000),
-  YSatur=SplitData[[4]]$InterSatur + SplitData[[4]]$SlopeSatur*seq(0.40,2.80,length.out=1000))
-
-# Cut the regression solutions
-PreyGLim=DataA[DataA$YPreyG >= 0.00 & DataA$YPreyG <= 0.18 & DataA$XPreyG >= 0.09 & DataA$XPreyG <= 0.36,]
-PreyGYLimL=head(PreyGLim,1)[,4]
-PreyGYLimU=tail(PreyGLim,1)[,4]
-PreyGXLimL=head(PreyGLim,1)[,1]
-PreyGXLimU=tail(PreyGLim,1)[,1]
-AffinLim=DataA[DataA$YAffin >= 0.00 & DataA$YAffin <= 0.18 & DataA$XAffin >= 0.00 & DataA$XAffin <= 0.60,]
-AffinYLimL=head(AffinLim,1)[,5]
-AffinYLimU=tail(AffinLim,1)[,5]
-AffinXLimL=head(AffinLim,1)[,2]
-AffinXLimU=tail(AffinLim,1)[,2]
-SaturLim=DataA[DataA$YSatur >= 0.00 & DataA$YSatur <= 0.18 & DataA$XSatur >= 0.40 & DataA$XSatur <= 2.80,]
-SaturYLimL=head(SaturLim,1)[,6]
-SaturYLimU=tail(SaturLim,1)[,6]
-SaturXLimL=head(SaturLim,1)[,3]
-SaturXLimU=tail(SaturLim,1)[,3]
-DataA2=data.frame(Trait="Attack",PreyGYLimL,PreyGYLimU,PreyGXLimL,PreyGXLimU,AffinYLimL,AffinYLimU,AffinXLimL,AffinXLimU,SaturYLimL,SaturYLimU,SaturXLimL,SaturXLimU)
-
-PreyGLim=DataH[DataH$YPreyG >= 0.00 & DataH$YPreyG <= 9.00 & DataH$XPreyG >= 0.09 & DataH$XPreyG <= 0.36,]
-PreyGYLimL=head(PreyGLim,1)[,4]
-PreyGYLimU=tail(PreyGLim,1)[,4]
-PreyGXLimL=head(PreyGLim,1)[,1]
-PreyGXLimU=tail(PreyGLim,1)[,1]
-AffinLim=DataH[DataH$YAffin >= 0.00 & DataH$YAffin <= 9.00 & DataH$XAffin >= 0.00 & DataH$XAffin <= 0.60,]
-AffinYLimL=head(AffinLim,1)[,5]
-AffinYLimU=tail(AffinLim,1)[,5]
-AffinXLimL=head(AffinLim,1)[,2]
-AffinXLimU=tail(AffinLim,1)[,2]
-SaturLim=DataH[DataH$YSatur >= 0.00 & DataH$YSatur <= 9.00 & DataH$XSatur >= 0.40 & DataH$XSatur <= 2.80,]
-SaturYLimL=head(SaturLim,1)[,6]
-SaturYLimU=tail(SaturLim,1)[,6]
-SaturXLimL=head(SaturLim,1)[,3]
-SaturXLimU=tail(SaturLim,1)[,3]
-DataH2=data.frame(Trait="Handling",PreyGYLimL,PreyGYLimU,PreyGXLimL,PreyGXLimU,AffinYLimL,AffinYLimU,AffinXLimL,AffinXLimU,SaturYLimL,SaturYLimU,SaturXLimL,SaturXLimU)
-
-PreyGLim=DataS[DataS$YPreyG >= 0.00 & DataS$YPreyG <= 6.00 & DataS$XPreyG >= 0.09 & DataS$XPreyG <= 0.36,]
-PreyGYLimL=head(PreyGLim,1)[,4]
-PreyGYLimU=tail(PreyGLim,1)[,4]
-PreyGXLimL=head(PreyGLim,1)[,1]
-PreyGXLimU=tail(PreyGLim,1)[,1]
-AffinLim=DataS[DataS$YAffin >= 0.00 & DataS$YAffin <= 6.00 & DataS$XAffin >= 0.00 & DataS$XAffin <= 0.60,]
-AffinYLimL=head(AffinLim,1)[,5]
-AffinYLimU=tail(AffinLim,1)[,5]
-AffinXLimL=head(AffinLim,1)[,2]
-AffinXLimU=tail(AffinLim,1)[,2]
-SaturLim=DataS[DataS$YSatur >= 0.00 & DataS$YSatur <= 6.00 & DataS$XSatur >= 0.40 & DataS$XSatur <= 2.80,]
-SaturYLimL=head(SaturLim,1)[,6]
-SaturYLimU=tail(SaturLim,1)[,6]
-SaturXLimL=head(SaturLim,1)[,3]
-SaturXLimU=tail(SaturLim,1)[,3]
-DataS2=data.frame(Trait="Area",PreyGYLimL,PreyGYLimU,PreyGXLimL,PreyGXLimU,AffinYLimL,AffinYLimU,AffinXLimL,AffinXLimU,SaturYLimL,SaturYLimU,SaturXLimL,SaturXLimU)
-
-PreyGLim=DataCN[DataCN$YPreyG >= 12 & DataCN$YPreyG <= 18 & DataCN$XPreyG >= 0.09 & DataCN$XPreyG <= 0.36,]
-PreyGYLimL=head(PreyGLim,1)[,4]
-PreyGYLimU=tail(PreyGLim,1)[,4]
-PreyGXLimL=head(PreyGLim,1)[,1]
-PreyGXLimU=tail(PreyGLim,1)[,1]
-AffinLim=DataCN[DataCN$YAffin >= 12 & DataCN$YAffin <= 18 & DataCN$XAffin >= 0.00 & DataCN$XAffin <= 0.60,]
-AffinYLimL=head(AffinLim,1)[,5]
-AffinYLimU=tail(AffinLim,1)[,5]
-AffinXLimL=head(AffinLim,1)[,2]
-AffinXLimU=tail(AffinLim,1)[,2]
-SaturLim=DataCN[DataCN$YSatur >= 12 & DataCN$YSatur <= 18 & DataCN$XSatur >= 0.40 & DataCN$XSatur <= 2.80,]
-SaturYLimL=tail(SaturLim,1)[,6]
-SaturYLimU=head(SaturLim,1)[,6]
-SaturXLimL=tail(SaturLim,1)[,3]
-SaturXLimU=head(SaturLim,1)[,3]
-DataCN2=data.frame(Trait="Stoichio",PreyGYLimL,PreyGYLimU,PreyGXLimL,PreyGXLimU,AffinYLimL,AffinYLimU,AffinXLimL,AffinXLimU,SaturYLimL,SaturYLimU,SaturXLimL,SaturXLimU)
-
-# Include limits in the dataset
-DataLim=rbind(DataA2,DataH2,DataS2,DataCN2)
-DataLim=DataLim[rep(seq_len(nrow(DataLim)),each=6),]
-MeltData=cbind(MeltData,DataLim[,-1])
-SplitData=split(MeltData, list(MeltData$Trait))
-
-
 ######################################################
 ### Trade-off plots of defense and competitiveness ###
 ######################################################
 
-PlotFunc=function(x) {
-  ggplot(x, aes(group=Strain)) + coord_cartesian(clip="off") + 
-    geom_segment(aes(x=PreyGXLimL, xend=PreyGXLimU, y=PreyGYLimL, yend=PreyGYLimU, linetype=SigPreyG, size=SigPreyG), color="grey50", size=1.5) + 
-    geom_errorbar(aes(PreyGM, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_errorbar(aes(PreyGM, Value, xmin=PreyGML, xmax=PreyGMU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_point(aes(PreyGM, Value, color=Strain), fill="white", size=7, pch=20) + 
-    theme(axis.text.y=element_text(face="plain", colour="black", size=25)) +  
-    theme(axis.text.y.right=element_text(face="plain", colour="black", size=25)) +  
-    theme(axis.text.x=element_text(face="plain", colour="black", size=25)) + 
-    theme(axis.title.y=element_blank()) +
-    theme(axis.title.x=element_blank()) +
-    scale_x_continuous(labels=sprintf(seq(0.09,0.36,by=0.09), fmt="%.2f"), breaks=seq(0.09,0.36,by=0.09), limits=c(0.0684,0.3816)) +
-    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
-    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_linetype_manual(values=c("Yes"="solid","No"=NA)) + scale_size_manual(values=c("Yes"=1,"No"=1.2)) +
-    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
-    facet_wrap(~Trait, ncol=1, nrow=4) +
-    theme(legend.position="none")
-}
-
-Panel=lapply(SplitData, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Attack rate'~italic(a[B])~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0-(0.18-0.0)*0.08,0.18+(0.18-0.0)*0.08))
-Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0-(9.0-0.0)*0.08,9.0+(9.0-0.0)*0.08))
-Panel[[3]]=Panel[[3]] + scale_y_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0-(6.0-0.0)*0.08,6.0+(6.0-0.0)*0.08))
-Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Carbon to nitrogen ratio '~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12-(18-12)*0.08,18+(18-12)*0.08))
-Panel[[1]]=Panel[[1]] + annotate("text", label=NA, y=0.18, x=0.36, color="black", size=8, fontface="italic")
-Panel[[2]]=Panel[[2]] + annotate("text", label=NA, y=9.0, x=0.36, color="black", size=8, fontface="italic")
-Panel[[3]]=Panel[[3]] + annotate("text", label="NS", y=6.0, x=0.36, color="black", size=8, fontface="italic")
-Panel[[4]]=Panel[[4]] + annotate("text", label="NS", y=18, x=0.36, color="black", size=8, fontface="italic")
-Panel[[1]]=Panel[[1]] + annotate("text", label=expression(C[R1]), x=0.09, y=0.1800, color="mediumpurple3", size=7) + annotate("text", label=expression(C[R2]), x=0.09, y=0.1656, color="cornflowerblue", size=7)
-Panel[[1]]=Panel[[1]] + annotate("text", label=expression(C[R3]), x=0.09, y=0.1512, color="chartreuse3", size=7) + annotate("text", label=expression(C[R4]), x=0.09, y=0.1368, color="gold2", size=7)
-Panel[[1]]=Panel[[1]] + annotate("text", label=expression(C[R6]), x=0.09, y=0.1224, color="darkorange1", size=7) + annotate("text", label=expression(C[R7]), x=0.09, y=0.1080, color="tomato2", size=7)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="last", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=-Inf, xmax=Inf, ymin=0.18+(0.18-0.0)*0.19, ymax=0.18+(0.18-0.0)*0.19)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=textGrob(expression('Competitiveness'), gp=gpar(fontface="bold", fontsize=25), rot=0), xmin=-Inf, xmax=Inf, ymin=0.18+(0.18-0.0)*0.26, ymax=0.18+(0.18-0.0)*0.26)
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) 
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) 
-Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.5,0.2,0,0.35),"cm"))
-Panel[[4]]=Panel[[4]] + theme(axis.title.x=element_text(face="plain", colour="black", size=25))
-Panel[[4]]=Panel[[4]] + xlab(expression('Maximum growth rate'~italic(r[C~max])~'('*day^-1*')'))
-Plot1=grid.arrange(grobs=Panel, ncol=1, nrow=4)
-
-PlotFunc=function(x) {
-  ggplot(x, aes(group=Strain)) + coord_cartesian(clip="off") + 
-    geom_segment(aes(x=AffinXLimL, xend=AffinXLimU, y=AffinYLimL, yend=AffinYLimU, linetype=SigAffin, size=SigAffin), color="grey50", size=1.5) + 
-    geom_errorbar(aes(Affin, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_errorbar(aes(Affin, Value, xmin=AffinL, xmax=AffinU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_point(aes(Affin, Value, color=Strain), fill="white", size=7, pch=20) + 
-    theme(axis.text.y=element_text(face="plain", colour="black", size=25)) +  
-    theme(axis.text.x=element_text(face="plain", colour="black", size=25)) + 
-    theme(axis.title.y=element_blank()) +
-    theme(axis.title.x=element_blank()) +
-    scale_x_continuous(labels=sprintf(seq(0,0.6,by=0.2), fmt="%.1f"), breaks=seq(0,0.6,by=0.2), limits=c(0,0.648)) +
-    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
-    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_linetype_manual(values=c("Yes"="solid","No"=NA)) + scale_size_manual(values=c("Yes"=1,"No"=1.2)) +
-    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
-    facet_wrap(~Trait, ncol=1, nrow=4) +
-    theme(legend.position="none")
-}
-
-Panel=lapply(SplitData, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Attack rate'~italic(a)~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0-(0.18-0.0)*0.08,0.18+(0.18-0.0)*0.08))
-Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~italic(h)~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0-(9.0-0.0)*0.08,9.0+(9.0-0.0)*0.08))
-Panel[[3]]=Panel[[3]] + scale_y_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0-(6.0-0.0)*0.08-(6.0-0.0)*0.08,6.0+(6.0-0.0)*0.08))
-Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Carbon to nitrogen ratio '~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12-(18-12)*0.08,18+(18-12)*0.08))
-Panel[[1]]=Panel[[1]] + annotate("text", label=NA, y=0.18, x=0.6, color="black", size=8, fontface="italic")
-Panel[[2]]=Panel[[2]] + annotate("text", label=NA, y=9.0, x=0.6, color="black", size=8, fontface="italic")
-Panel[[3]]=Panel[[3]] + annotate("text", label="NS", y=6.0, x=0.6, color="black", size=8, fontface="italic")
-Panel[[4]]=Panel[[4]] + annotate("text", label="NS", y=18, x=0.6, color="black", size=8, fontface="italic")
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="last", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=-Inf, xmax=Inf, ymin=0.18+(0.18-0.0)*0.19, ymax=0.18+(0.18-0.0)*0.19)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=textGrob(expression('Competitiveness'), gp=gpar(fontface="bold", fontsize=25), rot=0), xmin=-Inf, xmax=Inf, ymin=0.18+(0.18-0.0)*0.26, ymax=0.18+(0.18-0.0)*0.26)
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) 
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) 
-Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.5,0.2,0,0.35),"cm")) 
-Panel[[4]]=Panel[[4]] + theme(axis.title.x=element_text(vjust=1))
-Panel[[4]]=Panel[[4]] + theme(axis.title.x=element_text(face="plain", colour="black", size=25))
-Panel[[4]]=Panel[[4]] + xlab(expression('Affinity constant'~italic(f[C])~'('*µM~NO[3]^{'-'}~L^-1~day^-1*')'))
-Plot2=grid.arrange(grobs=Panel, ncol=1, nrow=4)
-
-PlotFunc=function(x) {
-  ggplot(x, aes(group=Strain)) + coord_cartesian(clip="off") + 
-    geom_segment(aes(x=SaturXLimL, xend=SaturXLimU, y=SaturYLimL, yend=SaturYLimU, linetype=SigSatur, size=SigSatur), color="grey50", size=1.5) + 
-    geom_errorbar(aes(Satur, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_errorbar(aes(Satur, Value, xmin=SaturL, xmax=SaturU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_point(aes(Satur, Value, color=Strain), fill="white", size=7, pch=20) + 
-    theme(axis.text.y=element_text(face="plain", colour="black", size=25)) +  
-    theme(axis.text.x=element_text(face="plain", colour="black", size=25)) + 
-    theme(axis.title.y=element_blank()) +
-    theme(axis.title.x=element_blank()) +
-    scale_x_continuous(labels=sprintf(seq(0.4,2.8,by=0.8), fmt="%.1f"), breaks=seq(0.4,2.8,by=0.8), limits=c(0.4,3.024)) +
-    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
-    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_linetype_manual(values=c("Yes"="solid","No"=NA)) + scale_size_manual(values=c("Yes"=1,"No"=1.2)) +
-    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
-    facet_wrap(~Trait, ncol=1, nrow=4) +
-    theme(legend.position="none")
-}
-
-Panel=lapply(SplitData, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Attack rate'~italic(a[B])~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0-(0.18-0.0)*0.08,0.18+(0.18-0.0)*0.08))
-Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0-(9.0-0.0)*0.08,9.0+(9.0-0.0)*0.08))
-Panel[[3]]=Panel[[3]] + scale_y_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0-(6.0-0.0)*0.08,6.0+(6.0-0.0)*0.08))
-Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Carbon to nitrogen ratio '~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12-(18-12)*0.08,18+(18-12)*0.08))
-Panel[[1]]=Panel[[1]] + annotate("text", label="NS", y=0.18, x=2.8, color="black", size=8, fontface="italic")
-Panel[[2]]=Panel[[2]] + annotate("text", label="NS", y=9.0, x=2.8, color="black", size=8, fontface="italic")
-Panel[[3]]=Panel[[3]] + annotate("text", label="NS", y=6.0, x=2.8, color="black", size=8, fontface="italic")
-Panel[[4]]=Panel[[4]] + annotate("text", label="NS", y=18, x=2.8, color="black", size=8, fontface="italic")
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="first", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=-Inf, xmax=Inf, ymin=0.18+(0.18-0.0)*0.19, ymax=0.18+(0.18-0.0)*0.19)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="first", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=2.8+(2.8-0.09)*0.18, xmax=2.8+(2.8-0.09)*0.18, ymin=-Inf, ymax=Inf)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=textGrob(expression('Competitiveness'), gp=gpar(fontface="bold", fontsize=25), rot=0), xmin=-Inf, xmax=Inf, ymin=0.18+(0.18-0.0)*0.26, ymax=0.18+(0.18-0.0)*0.26)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=textGrob(expression('Defense'), gp=gpar(fontface="bold", fontsize=25), rot=270), xmin=2.8+(2.8-0.09)*0.23, xmax=2.8+(2.8-0.09)*0.23, ymin=-Inf, ymax=Inf)
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="last", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=2.8+(2.8-0.09)*0.18, xmax=2.8+(2.8-0.09)*0.18, ymin=-Inf, ymax=Inf)
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=textGrob(expression('Defense'), gp=gpar(fontface="bold", fontsize=25), rot=270), xmin=2.8+(2.8-0.09)*0.23, xmax=2.8+(2.8-0.09)*0.23, ymin=-Inf, ymax=Inf)
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="last", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=2.8+(2.8-0.09)*0.18, xmax=2.8+(2.8-0.09)*0.18, ymin=-Inf, ymax=Inf)
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.2,0,0.1),"cm")) + annotation_custom(grob=textGrob(expression('Defense'), gp=gpar(fontface="bold", fontsize=25), rot=270), xmin=2.8+(2.8-0.09)*0.23, xmax=2.8+(2.8-0.09)*0.23, ymin=-Inf, ymax=Inf)
-Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.5,0.2,0,0.35),"cm")) + annotation_custom(grob=linesGrob(arrow=arrow(type="closed", ends="last", length=unit(0.4,"cm")), gp=gpar(col="black", fill="black", lty="solid", lwd=2)), xmin=2.8+(2.8-0.09)*0.18, xmax=2.8+(2.8-0.09)*0.18, ymin=-Inf, ymax=Inf)
-Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.5,0.2,0,0.35),"cm")) + annotation_custom(grob=textGrob(expression('Defense'), gp=gpar(fontface="bold", fontsize=25), rot=270), xmin=2.8+(2.8-0.09)*0.23, xmax=2.8+(2.8-0.09)*0.23, ymin=-Inf, ymax=Inf)
-Panel[[4]]=Panel[[4]] + theme(axis.title.x=element_text(vjust=1))
-Panel[[4]]=Panel[[4]] + theme(axis.title.x=element_text(face="plain", colour="black", size=25))
-Panel[[4]]=Panel[[4]] + xlab(expression('Half-saturation constant'~italic(K[C])~'('*µM~NO[3]^{'-'}~L^-1*')'))
-Plot3=grid.arrange(grobs=Panel, ncol=1, nrow=4)
-
-tiff('[Labels] Trait Spaces.tiff', units="in", width=21, height=27.5, res=1000)
-grid.arrange(Plot1, Plot2, Plot3, ncol=3, nrow=1)
-dev.off()
-
-
-######################################
-### Correlation traits and fitness ###
-######################################
-
-MeltData2$Strain=gsub("CR6", "CR7", MeltData2$Strain)
-MeltData2$Strain=gsub("CR5", "CR6", MeltData2$Strain)
-Labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R6]),expression(C[R7]))
-SplitData2=split(MeltData2, list(MeltData2$Trait))[c(1:4)]
-SplitData3=split(MeltData2, list(MeltData2$Trait))[c(5:7)]
-
-# Simulate regression solutions
-DataA=data.frame(
-  XGrow=seq(0.00,0.18,length.out=1000),
-  YGrow=SplitData2[[1]]$Inter + SplitData2[[1]]$Slope*seq(0.00,0.18,length.out=1000))
-
-DataH=data.frame(
-  XGrow=seq(0.00,9.00,length.out=1000),
-  YGrow=SplitData2[[2]]$Inter + SplitData2[[2]]$Slope*seq(0.00,9.00,length.out=1000))
-
-DataS=data.frame(
-  XGrow=seq(0.00,6.00,length.out=1000),
-  YGrow=SplitData2[[3]]$Inter + SplitData2[[3]]$Slope*seq(0.00,6.00,length.out=1000))
-
-DataCN=data.frame(
-  XGrow=seq(12,18,length.out=1000),
-  YGrow=SplitData2[[4]]$Inter + SplitData2[[4]]$Slope*seq(12,18,length.out=1000))
-
-DataG=data.frame(
-  XGrow=seq(0.09,0.36,length.out=1000),
-  YGrow=SplitData3[[1]]$Inter + SplitData3[[1]]$Slope*seq(0.09,0.36,length.out=1000))
-
-DataF=data.frame(
-  XGrow=seq(0.0,0.6,length.out=1000),
-  YGrow=SplitData3[[2]]$Inter + SplitData3[[2]]$Slope*seq(0.0,0.6,length.out=1000))
-
-DataK=data.frame(
-  XGrow=seq(0.4,2.8,length.out=1000),
-  YGrow=SplitData3[[3]]$Inter + SplitData3[[3]]$Slope*seq(0.4,2.8,length.out=1000))
-
-# Cut the regression solutions
-GrowLim=DataA[DataA$YGrow >= -0.05 & DataA$YGrow <= 5.5 & DataA$XGrow >= 0.00 & DataA$XGrow <= 0.18,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataA2=data.frame(Trait="Attack",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-GrowLim=DataH[DataH$YGrow >= -0.05 & DataH$YGrow <= 5.5 & DataH$XGrow >= 0.00 & DataH$XGrow <= 9.00,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataH2=data.frame(Trait="Handling",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-GrowLim=DataS[DataS$YGrow >= -0.05 & DataS$YGrow <= 5.5 & DataS$XGrow >= 0.00 & DataS$XGrow <= 6.00,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataS2=data.frame(Trait="Area",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-GrowLim=DataCN[DataCN$YGrow >= -0.05 & DataCN$YGrow <= 5.5 & DataCN$XGrow >= 12 & DataCN$XGrow <= 18,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataCN2=data.frame(Trait="Stoichio",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-GrowLim=DataG[DataG$YGrow >= 0.2 & DataG$YGrow <= 0.8 & DataG$XGrow >= 0.09 & DataG$XGrow <= 0.36,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataG2=data.frame(Trait="Grow",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-GrowLim=DataF[DataF$YGrow >= 0.2 & DataF$YGrow <= 0.8 & DataF$XGrow >= 0.0 & DataF$XGrow <= 0.6,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataF2=data.frame(Trait="Affin",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-GrowLim=DataK[DataK$YGrow >= 0.2 & DataK$YGrow <= 0.8 & DataK$XGrow >= 0.4 & DataK$XGrow <= 2.8,]
-GrowYLimL=head(GrowLim,1)[,2]
-GrowYLimU=tail(GrowLim,1)[,2]
-GrowXLimL=head(GrowLim,1)[,1]
-GrowXLimU=tail(GrowLim,1)[,1]
-DataH2=data.frame(Trait="Satur",GrowYLimL,GrowYLimU,GrowXLimL,GrowXLimU)
-
-# Include limits in the dataset
-DataLim=rbind(DataA2,DataH2,DataS2,DataCN2,DataG2,DataF2,DataH2)
-DataLim=DataLim[rep(seq_len(nrow(DataLim)),each=6),]
-MeltData2=cbind(MeltData2,DataLim[,-1])
-SplitData2=split(MeltData2, list(MeltData2$Trait))[c(1:4)]
-SplitData3=split(MeltData2, list(MeltData2$Trait))[c(5:7)]
-
-
-###############################################
-### Correlation plots of traits and fitness ###
-###############################################
+# Split the dataset
+SplitData=split(MeltData, list(MeltData$Trait))
 
 PlotFunc=function(x) {
   ggplot(x, aes(group=Strain)) +
-    geom_segment(aes(x=GrowXLimL, xend=GrowXLimU, y=GrowYLimL, yend=GrowYLimU, linetype=Sig, size=Sig), color="grey50", size=1.5) + 
-    geom_errorbar(aes(Value, PredG, ymin=PredGL, ymax=PredGU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_errorbar(aes(Value, PredG, xmin=ValueL, xmax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_point(aes(Value, PredG, color=Strain), fill="white", size=7, pch=20) + 
-    theme(axis.text.y=element_text(face="plain", colour="black", size=24)) +  
-    theme(axis.text.x=element_text(face="plain", colour="black", size=24)) + 
-    theme(axis.title.y=element_blank()) +
-    theme(axis.title.x=element_text(face="plain", colour="black", size=24)) + 
-    scale_y_continuous(labels=sprintf(seq(-0.5,5.5,by=2.0), fmt="%.1f"), breaks=seq(-0.5,5.5,by=2.0), limits=c(-0.5,5.912)) +
+    geom_abline(aes(intercept=InterPreyG, slope=SlopePreyG), color="grey50", linetype="solid", size=0.6) +
+    geom_errorbar(aes(PreyGM, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_errorbar(aes(PreyGM, Value, xmin=PreyGML, xmax=PreyGMU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_point(aes(PreyGM, Value, color=Strain), fill="white", size=3, pch=16) + 
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+    theme(axis.title.x=element_blank()) +
+    scale_x_continuous(labels=sprintf(seq(0.09,0.36,by=0.09), fmt="%.2f"), breaks=seq(0.09,0.36,by=0.09), limits=c(0.08,0.373)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_linetype_manual(values=c("Yes"="solid","No"=NA)) + scale_size_manual(values=c("Yes"=1,"No"=1.2)) +
+    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
     facet_wrap(~Trait, ncol=2, nrow=2) +
     theme(legend.position="none")
 }
 
+tiff('Trait Spaces 1.tiff', units="in", width=12, height=12, res=1000)
+Panel=lapply(SplitData, PlotFunc)
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Attack rate'~italic(a[B])~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0,0.18))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
+Panel[[3]]=Panel[[3]] + scale_y_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
+Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Carbon to nitrogen ratio'~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12,18))
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.75),"cm"))
+Xaxis=textGrob(expression('Maximum growth rate'~italic(µ[C~m])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=0)
+grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=2)
+dev.off()
+
+
+PlotFunc=function(x) {
+  ggplot(x, aes(group=Strain)) +
+    geom_abline(aes(intercept=InterAffin, slope=SlopeAffin), color="grey50", linetype="solid", size=0.6) +
+    geom_errorbar(aes(Affin, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_errorbar(aes(Affin, Value, xmin=AffinL, xmax=AffinU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_point(aes(Affin, Value, color=Strain), fill="white", size=3, pch=16) + 
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+    theme(axis.title.x=element_blank()) +
+    scale_x_continuous(labels=sprintf(seq(0,0.6,by=0.2), fmt="%.1f"), breaks=seq(0,0.6,by=0.2), limits=c(0,0.630)) +
+    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
+    facet_wrap(~Trait, ncol=2, nrow=2) +
+    theme(legend.position="none")
+}
+
+tiff('Trait Spaces 2.tiff', units="in", width=12, height=12, res=1000)
+Panel=lapply(SplitData, PlotFunc)
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Attack rate'~italic(a[B])~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0,0.18))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
+Panel[[3]]=Panel[[3]] + scale_y_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
+Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Carbon to nitrogen ratio'~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12,18))
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.75),"cm"))
+Xaxis=textGrob(expression('Affinity constant'~italic(f[C])~'('*µM~NO[3]^{'-'}~L^-1~day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=0)
+grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=2)
+dev.off()
+
+
+PlotFunc=function(x) {
+  ggplot(x, aes(group=Strain)) +
+    geom_abline(aes(intercept=InterSatur, slope=SlopeSatur), color="grey50", linetype="solid", size=0.6) +
+    geom_errorbar(aes(Satur, Value, ymin=ValueL, ymax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_errorbar(aes(Satur, Value, xmin=SaturL, xmax=SaturU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_point(aes(Satur, Value, color=Strain), fill="white", size=3, pch=16) + 
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+    theme(axis.title.x=element_blank()) +
+    scale_y_continuous(labels=sprintf(seq(0.4,2.8,by=0.8), fmt="%.1f"), breaks=seq(0.4,2.8,by=0.8), limits=c(0.4,3.024)) +
+    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
+    facet_wrap(~Trait, ncol=2, nrow=2) +
+    theme(legend.position="none")
+}
+
+tiff('Trait Spaces 3.tiff', units="in", width=12, height=12, res=1000)
+Panel=lapply(SplitData, PlotFunc)
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Attack rate'~italic(a[B])~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0,0.18))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
+Panel[[3]]=Panel[[3]] + scale_y_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
+Panel[[4]]=Panel[[4]] + scale_y_continuous(expression('Carbon to nitrogen ratio'~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12,18))
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.75),"cm"))
+Xaxis=textGrob(expression('Half-saturation constant'~italic(K[C])~'('*µM~NO[3]^{'-'}~L^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=0)
+grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=2)
+dev.off()
+
+
+##############################################
+### Correlation between traits and fitness ###
+##############################################
+
+# Create a dataset
+MeltData2=melt(Data, id.vars=c("Strain","PreyG","PredG")); colnames(MeltData2)[4:5]=c("Trait","Value")
+MeltData2L=melt(DataL, id.vars=c("Strain","PreyGL","PredGL")); colnames(MeltData2L)[4:5]=c("TraitL","ValueL")
+MeltData2U=melt(DataU, id.vars=c("Strain","PreyGU","PredGU")); colnames(MeltData2U)[4:5]=c("TraitU","ValueU")
+
+# Combine the datasets
+MeltData2=cbind(MeltData2[,c(1:5)],MeltData2L[,c(2:3,5)],MeltData2U[,c(2:3,5)])
+MeltData2=MeltData2[,c("Strain","Trait","PreyG","PreyGL","PreyGU","PredG","PredGL","PredGU","Value","ValueL","ValueU")]
+MeltData2=droplevels(MeltData2)
+
+# Create a list of traits
+ListData2=list(Data[,c(2,5)],Data[,c(3,5)],Data[,c(6,5)],Data[,c(7,5)],Data[,c(8,4)],Data[,c(9,4)],Data[,c(10,4)])
+
+# Calculate regression intercepts
+MeltData2$Inter=rep(round(do.call("rbind",lapply(ListData2, function(x) {coef(lm(x[,2]~x[,1]))}))[,1],4), each=6)
+
+# Calculate regression slopes
+MeltData2$Slope=rep(round(do.call("rbind",lapply(ListData2, function(x) {coef(lm(x[,2]~x[,1]))}))[,2],4), each=6)
+
+# Calculate correlation coefficients
+MeltData2$Cor=rep(round(do.call("rbind",lapply(ListData2, function(x) {cor.test(x[,2],x[,1])[[4]]})),4), each=6)
+MeltData2$Sig=rep(round(do.call("rbind",lapply(ListData2, function(x) {cor.test(x[,2],x[,1])[[3]]})),4), each=6)
+
+# Identify non-Sigficant correlations
+MeltData2$Sig=ifelse(MeltData2$Sig > 0.05, "No", "Yes")
+
+
+#############################################
+### Trade-off plots of traits and fitness ###
+#############################################
+
+# Split the dataset
+SplitData2=split(MeltData2, list(MeltData2$Trait))[c(1:4)]
+SplitData3=split(MeltData2, list(MeltData2$Trait))[c(5,7)]
+
+PlotFunc=function(x) {
+  ggplot(x, aes(group=Strain)) +
+    geom_abline(aes(intercept=Inter, slope=Slope), color="grey50", linetype="solid", size=0.6) +
+    geom_errorbar(aes(Value, PredG, ymin=PredGL, ymax=PredGU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_errorbar(aes(Value, PredG, xmin=ValueL, xmax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_point(aes(Value, PredG, color=Strain), fill="white", size=3, pch=16) + 
+    ylab(expression('Fitness'~italic(µ[B])~'('*day^-1*')')) +
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.y=element_blank()) +
+    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+    scale_y_continuous(labels=sprintf(seq(-0.5,5.5,by=2.0), fmt="%.1f"), breaks=seq(-0.5,5.5,by=2.0), limits=c(-0.5,5.5)) +
+    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
+    facet_wrap(~Trait, ncol=2, nrow=2) +
+    theme(legend.position="none")
+}
+
+tiff('Trait Spaces 4.tiff', units="in", width=12, height=12, res=1000)
 Panel=lapply(SplitData2, PlotFunc)
 Panel[[1]]=Panel[[1]] + scale_x_continuous(expression('Attack rate'~italic(a[B])~'('*10^-6~mL~sec^-1*')'), labels=sprintf(seq(0,1.8,by=0.6), fmt="%.1f"), breaks=c(seq(0,0.18,by=0.06)), limits=c(0,0.18))
 Panel[[2]]=Panel[[2]] + scale_x_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
 Panel[[3]]=Panel[[3]] + scale_x_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
 Panel[[4]]=Panel[[4]] + scale_x_continuous(expression('Carbon to nitrogen ratio'~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12,18))
-Panel[[1]]=Panel[[1]] + annotate("text", label=NA, y=5.5, x=0.18, color="black", size=8, fontface="italic")
-Panel[[2]]=Panel[[2]] + annotate("text", label="NS", y=5.5, x=9.0, color="black", size=8, fontface="italic")
-Panel[[3]]=Panel[[3]] + annotate("text", label="NS", y=5.5, x=6.0, color="black", size=8, fontface="italic")
-Panel[[4]]=Panel[[4]] + annotate("text", label="NS", y=5.5, x=18, color="black", size=8, fontface="italic")
-Panel[[1]]=Panel[[1]] + annotate("text", label=expression(C[R1]), x=-0.05, y=0.1800, color="mediumpurple3", size=7) + annotate("text", label=expression(C[R2]), x=-0.05, y=0.1656, color="cornflowerblue", size=7)
-Panel[[1]]=Panel[[1]] + annotate("text", label=expression(C[R3]), x=-0.05, y=0.1512, color="chartreuse3", size=7) + annotate("text", label=expression(C[R4]), x=-0.05, y=0.1368, color="gold2", size=7)
-Panel[[1]]=Panel[[1]] + annotate("text", label=expression(C[R6]), x=-0.05, y=0.1224, color="darkorange1", size=7) + annotate("text", label=expression(C[R7]), x=-0.05, y=0.1080, color="tomato2", size=7)
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
-Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.5,0.5,0,0.1),"cm"))
-Yaxis=textGrob(expression('Fitness growth rate'~italic(r[B])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=24), rot=90)
-Plot1=grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=2)
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Yaxis=textGrob(expression('Fitness'~italic(µ[B])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=90)
+grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=2)
+dev.off()
 
 PlotFunc=function(x) {
   ggplot(x, aes(group=Strain)) +
-    geom_segment(aes(x=GrowXLimL, xend=GrowXLimU, y=GrowYLimL, yend=GrowYLimU, linetype=Sig, size=Sig), color="grey50", size=1.5) + 
-    geom_errorbar(aes(Value, PreyG, ymin=PreyGL, ymax=PreyGU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_errorbar(aes(Value, PreyG, xmin=ValueL, xmax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.5, width=0) +
-    geom_point(aes(Value, PreyG, color=Strain), fill="white", size=7, pch=20) + 
-    theme(axis.text.y=element_text(face="plain", colour="black", size=24)) +  
-    theme(axis.text.x=element_text(face="plain", colour="black", size=24)) + 
+    geom_abline(aes(intercept=Inter, slope=Slope), color="grey50", linetype="solid", size=0.6) +
+    geom_errorbar(aes(Value, PreyG, ymin=PreyGL, ymax=PreyGU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_errorbar(aes(Value, PreyG, xmin=ValueL, xmax=ValueU, color=Strain), linetype="solid", alpha=0.7, size=1.2, width=0) +
+    geom_point(aes(Value, PreyG, color=Strain), fill="white", size=3, pch=16) + 
+    ylab(expression('Fitness'~italic(µ[C])~'('*day^-1*')')) +
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
     theme(axis.title.y=element_blank()) +
-    theme(axis.title.x=element_text(face="plain", colour="black", size=24)) + 
+    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
     scale_y_continuous(labels=sprintf(seq(0.2,0.8,by=0.2), fmt="%.1f"), breaks=seq(0.2,0.8,by=0.2), limits=c(0.2,0.86)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
-    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR6"="darkorange1","CR7"="tomato2")) +
+    scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
     facet_wrap(~Trait, ncol=2, nrow=2) +
     theme(legend.position="none")
 }
 
+tiff('Trait Spaces 5.tiff', units="in", width=12, height=6, res=1000)
 Panel=lapply(SplitData3, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_x_continuous(expression('Maximum growth rate'~italic(r[C~max])~'('*day^-1*')'), labels=sprintf(seq(0.09,0.36,by=0.09), fmt="%.2f"), breaks=seq(0.09,0.36,by=0.09), limits=c(0.09,0.36))
-Panel[[2]]=Panel[[2]] + scale_x_continuous(expression('Affinity constant'~italic(f[C])~'('*µM~NO[3]^{'-'}~L^-1~day^-1*')'), labels=sprintf(seq(0,0.6,by=0.2), fmt="%.1f"), breaks=seq(0,0.6,by=0.2), limits=c(0,0.6))
-Panel[[3]]=Panel[[3]] + scale_x_continuous(expression('Half-saturation constant'~italic(K[C])~'('*µM~NO[3]^{'-'}~L^-1*')'), labels=sprintf(seq(0.4,2.8,by=0.8), fmt="%.1f"), breaks=seq(0.4,2.8,by=0.8), limits=c(0.4,2.8))
-Panel[[1]]=Panel[[1]] + annotate("text", label=NA, y=1.6, x=0.18, color="black", size=8, fontface="italic")
-Panel[[2]]=Panel[[2]] + annotate("text", label=NA, y=1.6, x=9.0, color="black", size=8, fontface="italic")
-Panel[[3]]=Panel[[3]] + annotate("text", label="NS", y=1.6, x=6.0, color="black", size=8, fontface="italic")
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.5,0.5,0,0.40),"cm"))
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.5,0.5,0,0.40),"cm"))
-Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.5,0.5,0,0.40),"cm"))
-Yaxis=textGrob(expression('Fitness growth rate'~italic(r[C])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=24), rot=90)
-Plot2=grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=2)
-
-tiff('[Labels] Correlation Traits.tiff', units="in", width=13.7, height=27.5, res=1000)
-grid.arrange(Plot1, Plot2, ncol=1, nrow=2)
+Panel[[1]]=Panel[[1]] + scale_x_continuous(expression('Maximum growth rate'~italic(µ[C~m])~'('*day^-1*')'), labels=sprintf(seq(0.09,0.36,by=0.09), fmt="%.1f"), breaks=seq(0.09,0.36,by=0.09), limits=c(0.09,0.36))
+Panel[[2]]=Panel[[2]] + scale_x_continuous(expression('Half-saturation constant'~italic(K[C])~'('*µM~NO[3]^{'-'}~L^-1*')'), labels=sprintf(seq(0.4,2.8,by=0.8), fmt="%.1f"), breaks=seq(0.4,2.8,by=0.8), limits=c(0.4,2.8))
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.80),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.10),"cm"))
+Yaxis=textGrob(expression('Fitness'~italic(µ[C])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=90)
+grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=1)
 dev.off()
