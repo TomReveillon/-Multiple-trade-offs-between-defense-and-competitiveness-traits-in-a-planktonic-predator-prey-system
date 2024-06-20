@@ -410,6 +410,7 @@ PlotFunc=function(x) {
     scale_x_continuous(labels=sprintf(seq(0.09,0.36,by=0.09), fmt="%.2f"), breaks=seq(0.09,0.36,by=0.09), limits=c(0.08,0.373)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    theme(plot.background=element_rect(fill='transparent', color='transparent')) +
     scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
@@ -445,6 +446,7 @@ PlotFunc=function(x) {
     scale_x_continuous(labels=sprintf(seq(0,0.6,by=0.2), fmt="%.1f"), breaks=seq(0,0.6,by=0.2), limits=c(0,0.630)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    theme(plot.background=element_rect(fill='transparent', color='transparent')) +
     scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
@@ -480,6 +482,7 @@ PlotFunc=function(x) {
     scale_y_continuous(labels=sprintf(seq(0.4,2.8,by=0.8), fmt="%.1f"), breaks=seq(0.4,2.8,by=0.8), limits=c(0.4,3.024)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    theme(plot.background=element_rect(fill='transparent', color='transparent')) +
     scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
@@ -555,6 +558,7 @@ PlotFunc=function(x) {
     scale_y_continuous(labels=sprintf(seq(-0.5,5.5,by=2.0), fmt="%.1f"), breaks=seq(-0.5,5.5,by=2.0), limits=c(-0.5,5.5)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    theme(plot.background=element_rect(fill='transparent', color='transparent')) +
     scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
@@ -568,8 +572,10 @@ Panel[[1]]=Panel[[1]] + scale_x_continuous(expression('Attack rate'~italic(a[B])
 Panel[[2]]=Panel[[2]] + scale_x_continuous(expression('Handling time'~italic(h[B])~'('*sec*')'), labels=sprintf(seq(0,9.0,by=3.0), fmt="%.1f"), breaks=c(seq(0,9.0,by=3.0)), limits=c(0,9.0))
 Panel[[3]]=Panel[[3]] + scale_x_continuous(expression('Particle area'~italic(s[C])~'('*10^2~µm^2*')'), labels=sprintf(seq(0,6.0,by=2.0), fmt="%.1f"), breaks=c(seq(0,6.0,by=2.0)), limits=c(0,6.0))
 Panel[[4]]=Panel[[4]] + scale_x_continuous(expression('Carbon to nitrogen ratio'~italic('C:N'[C])), labels=sprintf(seq(12,18,by=2.0), fmt="%.0f"), breaks=c(seq(12,18,by=2.0)), limits=c(12,18))
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.50),"cm"))
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,-0.20,0.50,0.50),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,-0.20,0.50,0.50),"cm"))
+Panel[[3]]=Panel[[3]] + theme(plot.margin=unit(c(0.50,-0.20,0.50,0.50),"cm"))
+Panel[[4]]=Panel[[4]] + theme(plot.margin=unit(c(0.50,-0.20,0.50,0.50),"cm"))
 Yaxis=textGrob(expression('Fitness'~italic(µ[B])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=90)
 grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=2)
 dev.off()
@@ -588,6 +594,7 @@ PlotFunc=function(x) {
     scale_y_continuous(labels=sprintf(seq(0.2,0.8,by=0.2), fmt="%.1f"), breaks=seq(0.2,0.8,by=0.2), limits=c(0.2,0.86)) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    theme(plot.background=element_rect(fill='transparent', color='transparent')) +
     scale_fill_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
@@ -599,8 +606,8 @@ tiff('Trait Spaces 5.tiff', units="in", width=12, height=6, res=1000)
 Panel=lapply(SplitData3, PlotFunc)
 Panel[[1]]=Panel[[1]] + scale_x_continuous(expression('Maximum growth rate'~italic(µ[C~m])~'('*day^-1*')'), labels=sprintf(seq(0.09,0.36,by=0.09), fmt="%.1f"), breaks=seq(0.09,0.36,by=0.09), limits=c(0.09,0.36))
 Panel[[2]]=Panel[[2]] + scale_x_continuous(expression('Half-saturation constant'~italic(K[C])~'('*µM~NO[3]^{'-'}~L^-1*')'), labels=sprintf(seq(0.4,2.8,by=0.8), fmt="%.1f"), breaks=seq(0.4,2.8,by=0.8), limits=c(0.4,2.8))
-Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,1.25,0.50,0.80),"cm"))
-Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,1.90,0.50,0.10),"cm"))
+Panel[[1]]=Panel[[1]] + theme(plot.margin=unit(c(0.50,0.50,0.50,0.80),"cm"))
+Panel[[2]]=Panel[[2]] + theme(plot.margin=unit(c(0.50,1.20,0.50,0.10),"cm"))
 Yaxis=textGrob(expression('Fitness'~italic(µ[C])~'('*day^-1*')'), gp=gpar(fontface="bold", fontsize=18), rot=90)
 grid.arrange(grobs=Panel, left=Yaxis, ncol=2, nrow=1)
 dev.off()
