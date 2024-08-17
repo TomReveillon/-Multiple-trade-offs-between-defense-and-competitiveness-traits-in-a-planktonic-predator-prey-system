@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Predator Ingestion")
+setwd("~/LIMNO 2019-2023/Experiments/Predator Ingestion")
 
 rm(list=ls())
 
@@ -193,7 +193,7 @@ Data5[,c(3:5)][Data5[,c(3:5)]<0]=0
 Data5[,c(3:5)]=Data5[,c(3:5)]/4
 Data5[,c(3:5)]=round(Data5[,c(3:5)],4)
 
-# Include raw data
+# Include experimental points
 Data6=read.table("Data_FRP.txt", h=T, dec=",")
 Data6[,c(2:7)] %<>% mutate_if(is.character,as.numeric)
 
