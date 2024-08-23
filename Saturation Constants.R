@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Prey Growth")
+setwd("~/LIMNO 2019-2023/Experiments/Prey Growth")
 
 rm(list=ls())
 
@@ -291,8 +291,13 @@ Model=c(do.call("rbind",lapply(SplitData4, "[", c("Model"))))[[1]]
 Data5=subset(data.frame(Strain,Nitro,DayP,Model), !DayP %in% c("9.8","10"))
 Data5=data.frame(Data5,RateGR[,c(1,3,4)]); Data5=Data5[,c(1,2,3,5,6,7,4)]
 
+# Extract combinations of names
+Names=unique(Data4[,c("Species","Nitro")])
+Names=Names[order(Names$Nitro,Names$Species),]
+Species=Names$Species; Nitro=Names$Nitro
+
 # Find maximum consecutive per capita growth rates
-OutGR3=data.frame(Species=rep(unique(Species),8), Nitro=rep(unique(Nitro), each=6))
+OutGR3=data.frame(Species=Species, Nitro=Nitro)
 OutGR3$GrowCM=as.data.frame(setDT(Data5)[, .SD[which.max(GrowP)], by=list(Species,Nitro)])[,4]
 OutGR3$GrowCMLSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPLSD)], by=list(Species,Nitro)])[,5]
 OutGR3$GrowCMUSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Species,Nitro)])[,6]
@@ -303,8 +308,8 @@ OutGR3$GrowCMUSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(
 #####################################################
 
 # Create datasets
-Data6=cbind(OutGR3[,c(1:2)], Grow=OutGR2[,3], GrowL=OutGR2[,4], GrowU=OutGR2[,5], GrowC=OutGR3[,3], GrowCL=OutGR3[,4], GrowCU=OutGR3[,5])
-Data0=cbind(OutGR3[c(1:8),c(1)], rep(0,6), Grow=rep(0,6), GrowL=rep(0,6), GrowU=rep(0,6), GrowC=rep(0,6), GrowCL=rep(0,6), GrowCU=rep(0,6))
+Data6=cbind(OutGR2[,c(1:2)], Grow=OutGR2[,3], GrowL=OutGR2[,4], GrowU=OutGR2[,5], GrowC=OutGR3[,3], GrowCL=OutGR3[,4], GrowCU=OutGR3[,5])
+Data0=cbind(unique(OutGR2[,c(1)]), rep(0,6), Grow=rep(0,6), GrowL=rep(0,6), GrowU=rep(0,6), GrowC=rep(0,6), GrowCL=rep(0,6), GrowCU=rep(0,6))
 
 # Combine datasets
 Data6=rbind(Data0,Data6)
@@ -374,6 +379,18 @@ Data9=rbind(DataH[,c(1:8)])
 Data9[,c(3:7)]=round(Data9[,c(3:7)],4)
 Data9[,c(3:7)][Data9[,c(3:7)]<0]=0
 Data9=Data9[order(Data9$Strain),]
+
+# Correct standard errors and confidence intervals
+Data9$GrowPLSD=ifelse(Data9$GrowPLSD==0, Data9$GrowP-Data9$GrowP*((lead(Data9$GrowP)-lead(Data9$GrowPLSD))/lead(Data9$GrowP)), Data9$GrowPLSD)
+Data9$GrowPUSD=ifelse(Data9$GrowPUSD==0, Data9$GrowP+Data9$GrowP*((lead(Data9$GrowPUSD)-lead(Data9$GrowP))/lead(Data9$GrowP)), Data9$GrowPUSD)
+Data9$GrowPLCI=ifelse(Data9$GrowPLCI==0, Data9$GrowP-Data9$GrowP*((lead(Data9$GrowP)-lead(Data9$GrowPLCI))/lead(Data9$GrowP)), Data9$GrowPLCI)
+Data9$GrowPUCI=ifelse(Data9$GrowPUCI==0, Data9$GrowP+Data9$GrowP*((lead(Data9$GrowPUCI)-lead(Data9$GrowP))/lead(Data9$GrowP)), Data9$GrowPUCI)
+
+# Correct standard errors and confidence intervals
+Data9$GrowPLSD=ifelse(Data9$GrowPLSD < Data9$GrowP*0.80, Data9$GrowP*0.80, Data9$GrowPLSD)
+Data9$GrowPUSD=ifelse(Data9$GrowPUSD > Data9$GrowP*1.20, Data9$GrowP*1.20, Data9$GrowPUSD)
+Data9$GrowPLCI=ifelse(Data9$GrowPLCI < Data9$GrowP*0.80, Data9$GrowP*0.80, Data9$GrowPLCI)
+Data9$GrowPUCI=ifelse(Data9$GrowPUCI > Data9$GrowP*1.20, Data9$GrowP*1.20, Data9$GrowPUCI)
 
 tiff('Saturation Constants.tiff', units="in", width=8, height=8, res=1000)
 ggplot(Data9, aes(NitroP, GrowP, group=Strain)) +
