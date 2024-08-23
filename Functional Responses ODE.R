@@ -198,8 +198,16 @@ Data6=read.table("Data_FRP.txt", h=T, dec=",")
 Data6[,c(2:7)] %<>% mutate_if(is.character,as.numeric)
 
 # Correct standard errors and confidence intervals
+Data5$IngesPLSD=ifelse(Data5$IngesPLSD==0, Data5$IngesP-Data5$IngesP*((lead(Data5$IngesP)-lead(Data5$IngesPLSD))/lead(Data5$IngesP)), Data5$IngesPLSD)
+Data5$IngesPUSD=ifelse(Data5$IngesPUSD==0, Data5$IngesP+Data5$IngesP*((lead(Data5$IngesPUSD)-lead(Data5$IngesP))/lead(Data5$IngesP)), Data5$IngesPUSD)
+Data5$IngesPLCI=ifelse(Data5$IngesPLCI==0, Data5$IngesP-Data5$IngesP*((lead(Data5$IngesP)-lead(Data5$IngesPLCI))/lead(Data5$IngesP)), Data5$IngesPLCI)
+Data5$IngesPUCI=ifelse(Data5$IngesPUCI==0, Data5$IngesP+Data5$IngesP*((lead(Data5$IngesPUCI)-lead(Data5$IngesP))/lead(Data5$IngesP)), Data5$IngesPUCI)
+
+# Correct standard errors and confidence intervals
 Data5$IngesPLSD=ifelse(Data5$IngesPLSD < Data5$IngesP*0.80, Data5$IngesP*0.80, Data5$IngesPLSD)
 Data5$IngesPUSD=ifelse(Data5$IngesPUSD > Data5$IngesP*1.20, Data5$IngesP*1.20, Data5$IngesPUSD)
+Data5$IngesPLCI=ifelse(Data5$IngesPLCI < Data5$IngesP*0.80, Data5$IngesP*0.80, Data5$IngesPLCI)
+Data5$IngesPUCI=ifelse(Data5$IngesPUCI > Data5$IngesP*1.20, Data5$IngesP*1.20, Data5$IngesPUCI)
 
 # Export the dataset
 Data5[,c(3:5)]=replace(Data5[,c(3:5)],Data5[,c(3:5)]<0,0)

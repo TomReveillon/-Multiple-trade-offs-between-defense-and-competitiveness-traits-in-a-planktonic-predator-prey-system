@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Predator Ingestion")
+setwd("~/LIMNO 2019-2023/Experiments/Predator Ingestion")
 
 rm(list=ls())
 
@@ -249,6 +249,12 @@ Data4=DataHII[,c(1:8)]
 Data4[,c(3:7)]=round(Data4[,c(3:7)],4)
 Data4[,c(3:7)][Data4[,c(3:7)]<0]=0
 Data4=Data4[order(Data4$Strain),]
+
+# Correct standard errors and confidence intervals
+Data4$IngesPLSD=ifelse(Data4$IngesPLSD==0, Data4$IngesP-Data4$IngesP*((lead(Data4$IngesP)-lead(Data4$IngesPLSD))/lead(Data4$IngesP)), Data4$IngesPLSD)
+Data4$IngesPUSD=ifelse(Data4$IngesPUSD==0, Data4$IngesP+Data4$IngesP*((lead(Data4$IngesPUSD)-lead(Data4$IngesP))/lead(Data4$IngesP)), Data4$IngesPUSD)
+Data4$IngesPLCI=ifelse(Data4$IngesPLCI==0, Data4$IngesP-Data4$IngesP*((lead(Data4$IngesP)-lead(Data4$IngesPLCI))/lead(Data4$IngesP)), Data4$IngesPLCI)
+Data4$IngesPUCI=ifelse(Data4$IngesPUCI==0, Data4$IngesP+Data4$IngesP*((lead(Data4$IngesPUCI)-lead(Data4$IngesP))/lead(Data4$IngesP)), Data4$IngesPUCI)
 
 # Correct standard errors and confidence intervals
 Data4$IngesPLSD=ifelse(Data4$IngesPLSD < Data4$IngesP*0.80, Data4$IngesP*0.80, Data4$IngesPLSD)
