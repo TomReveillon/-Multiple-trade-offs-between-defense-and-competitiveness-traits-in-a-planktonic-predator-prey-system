@@ -1,4 +1,4 @@
-setwd("~/LIMNO 2019-2022/Experiments/Predator Growth")
+setwd("~/LIMNO 2019-2023/Experiments/Predator Growth")
 
 rm(list=ls())
 
@@ -289,6 +289,12 @@ Data4[,c(3:7)][Data4[,c(3:7)]<0]=0
 Data4=Data4[order(Data4$Strain),]
 
 # Correct standard errors and confidence intervals
+Data4$DensPLSD=ifelse(Data4$DensPLSD==0, Data4$DensP-Data4$DensP*((lead(Data4$DensP)-lead(Data4$DensPLSD))/lead(Data4$DensP)), Data4$DensPLSD)
+Data4$DensPUSD=ifelse(Data4$DensPUSD==0, Data4$DensP+Data4$DensP*((lead(Data4$DensPUSD)-lead(Data4$DensP))/lead(Data4$DensP)), Data4$DensPUSD)
+Data4$DensPLCI=ifelse(Data4$DensPLCI==0, Data4$DensP-Data4$DensP*((lead(Data4$DensP)-lead(Data4$DensPLCI))/lead(Data4$DensP)), Data4$DensPLCI)
+Data4$DensPUCI=ifelse(Data4$DensPUCI==0, Data4$DensP+Data4$DensP*((lead(Data4$DensPUCI)-lead(Data4$DensP))/lead(Data4$DensP)), Data4$DensPUCI)
+
+# Correct standard errors and confidence intervals
 Data4$DensPLSD=ifelse(Data4$DensPLSD < Data4$DensP*0.80, Data4$DensP*0.80, Data4$DensPLSD)
 Data4$DensPUSD=ifelse(Data4$DensPUSD > Data4$DensP*1.20, Data4$DensP*1.20, Data4$DensPUSD)
 Data4$DensPLCI=ifelse(Data4$DensPLCI < Data4$DensP*0.80, Data4$DensP*0.80, Data4$DensPLCI)
@@ -371,9 +377,9 @@ DataGR=subset(data.frame(Strain,DayP,Model), !DayP %in% c("4.8","4.9","5.0"))
 DataGR=data.frame(DataGR,RateGR[,c(1,3,4)]); DataGR=DataGR[,c(1,2,4,5,6,3)]
 
 
-###################################
-### Plot predicted growth rates ###
-###################################
+#######################################
+### Plotting predicted growth rates ###
+#######################################
 
 # Create a dataset
 Data5=DataGR[,c(1:6)]
