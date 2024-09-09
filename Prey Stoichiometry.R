@@ -66,9 +66,9 @@ Data2=melt(Data[,c(1,6,15:17)], id.vars=c("Strain","Trial"))
 colnames(Data2)[3:4]=c("Element","Mass")
 
 
-########################################
-### Plot stoichiometric compositions ###
-########################################
+############################################
+### Plotting stoichiometric compositions ###
+############################################
 
 # Create a dataset
 Data2=Data2[,c(1:4)]
@@ -80,13 +80,18 @@ Data2=Data2[order(Data2$Strain,Data2$Element),]
 Data2[,c(4)]=replace(Data2[,c(4)],Data2[,c(4)]<0,0)
 write.table(Data2, file="Data_SP.txt", sep="\t", row.names=F)
 
+# Calculate mean trait values
+Data2=setDT(Data2)[, Mean := mean(Mass), by=list(Strain,Element)]
+Data2=as.data.frame(Data2)
+
 # Split the dataset
 SplitData2=split(Data2, list(Data2$Element))
 
 PlotFunc=function(x) {
   ggplot(x, aes(Strain, Mass, group=Strain)) +
-    geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, outlier.shape=NA) + 
-    geom_point(aes(color=Strain), size=1.5, pch=16, alpha=0.7) +
+    geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, fatten=NA, outlier.shape=NA) +
+    stat_boxplot(aes(color=Strain), geom="errorbar", width=0.2) +
+    geom_point(aes(Strain, Mean, color=Strain), size=3, pch=16, alpha=0.7) +
     ylab(expression('Carbon:nitrogen ratio ratio'~'('*ng~C~ng~N^-1*')')) + xlab(expression(italic('C. reinhardtii')~'strain')) +
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) +  
