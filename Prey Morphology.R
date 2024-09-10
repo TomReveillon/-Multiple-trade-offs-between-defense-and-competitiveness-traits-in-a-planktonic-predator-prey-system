@@ -165,10 +165,10 @@ PlotFunc=function(x) {
 }
 
 tiff('PCA Individuals Interstrain.tiff', units="in", width=15, height=8, res=1000)
-Panel1=lapply(SplitIndiv, PlotFunc)
+Panel=lapply(SplitIndiv, PlotFunc)
 Yaxis=textGrob(expression('Dimension 2 (16.94 %)'), gp=gpar(fontface="bold", fontsize=18), rot=90)
 Xaxis=textGrob(expression('Dimension 1 (72.15 %)'), gp=gpar(fontface="bold", fontsize=18))
-grid.arrange(grobs=Panel1, left=Yaxis, bottom=Xaxis, ncol=3, nrow=2)
+grid.arrange(grobs=Panel, left=Yaxis, bottom=Xaxis, ncol=3, nrow=2)
 dev.off()
 
 # Select relevant traits
@@ -210,11 +210,40 @@ PlotFunc=function(x) {
 }
 
 tiff('PCA Traits Interstrain.tiff', units="in", width=15, height=8, res=1000)
-Panel2=lapply(SplitInter, PlotFunc)
-Panel2[[1]]=Panel2[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.5,by=0.3), limits=c(0,1.5))
-Panel2[[2]]=Panel2[[2]] + scale_y_continuous(expression('Particle roundness'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,5,by=1), limits=c(0,5))
+Panel=lapply(SplitInter, PlotFunc)
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.6,by=0.4), limits=c(0,1.6))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Particle roundness'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,4.8,by=1.2), limits=c(0,4.8))
 Xaxis=textGrob(expression(italic('C. reinhardtii')~'strain'), gp=gpar(fontface="bold", fontsize=18), rot=0)
-grid.arrange(grobs=Panel2, bottom=Xaxis, ncol=2, nrow=1)
+grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=1)
+dev.off()
+
+# Split the dataset
+SplitInter=split(MeltInter, list(MeltInter$Trait))
+
+# Box plots of traits
+PlotFunc=function(x) {
+  ggplot(x, aes(Strain, Value, group=Strain)) +
+    geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, fatten=NA, outlier.shape=NA) +
+    stat_boxplot(aes(color=Strain), geom="errorbar", width=0.2) +
+    geom_point(aes(Strain, Mean, color=Strain), size=3, pch=16) +
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
+    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+    scale_x_discrete(labels=c("CR1"=expression(C[R1]),"CR2"=expression(C[R2]),"CR3"=expression(C[R3]),"CR4"=expression(C[R4]),"CR5"=expression(C[R5]),"CR6"=expression(C[R6]))) +
+    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.5)) +
+    scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
+    theme(legend.position="none")
+}
+
+tiff('PCA Traits Interstrain.tiff', units="in", width=15, height=8, res=1000)
+Panel=lapply(SplitInter, PlotFunc)
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.6,by=0.4), limits=c(0,1.6))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Particle roundness'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,4.8,by=1.2), limits=c(0,4.8))
+Xaxis=textGrob(expression(italic('C. reinhardtii')~'strain'), gp=gpar(fontface="bold", fontsize=18), rot=0)
+grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=1)
 dev.off()
 
 
@@ -281,10 +310,10 @@ PlotFunc=function(x) {
 }
 
 tiff('PCA Individuals Intrastrain.tiff', units="in", width=15, height=8, res=1000)
-Panel4=lapply(SplitIndiv, PlotFunc)
+Panel=lapply(SplitIndiv, PlotFunc)
 Yaxis=textGrob(expression('Dimension 2 (16.94 %)'), gp=gpar(fontface="bold", fontsize=18), rot=90)
 Xaxis=textGrob(expression('Dimension 1 (72.15 %)'), gp=gpar(fontface="bold", fontsize=18))
-grid.arrange(grobs=Panel4, left=Yaxis, bottom=Xaxis, ncol=3, nrow=2)
+grid.arrange(grobs=Panel, left=Yaxis, bottom=Xaxis, ncol=3, nrow=2)
 dev.off()
 
 # Select relevant traits
@@ -299,10 +328,6 @@ colnames(MeltIntra)[3:4]=c("Trait","Value")
 
 # Create codes binding strains and morphotypes
 MeltIntra$Code=paste(MeltIntra$Strain, MeltIntra$Morpho, sep="")
-
-# Calculate mean trait values
-MeltIntra=setDT(MeltIntra)[, Mean := mean(Value), by=list(Code,Trait)]
-MeltIntra=as.data.frame(MeltIntra)
 
 # Replace some morphotype categories
 MeltIntra$Code=gsub("CR2LC", "CR2MC", MeltIntra$Code)
@@ -322,18 +347,22 @@ MeltIntra$Morpho[MeltIntra$Code %in% c("CR6SC")]="SC"
 # Specify the variables as factors
 MeltIntra$Code=factor(MeltIntra$Code, levels=c("CR1S","CR1SC","CR1MC","CR1LC","CR2S","CR2SC","CR2MC","CR3S","CR3SC","CR3MC","CR4S","CR4SC","CR5S","CR5SC","CR6S","CR6SC"))
 
+# Calculate mean trait values
+MeltIntra=setDT(MeltIntra)[, Mean := mean(Value), by=list(Code,Trait)]
+MeltIntra=as.data.frame(MeltIntra)
+
 # Split the dataset
 SplitIntra=split(MeltIntra, list(MeltIntra$Trait))
 
 # Violin plots of traits
 PlotFunc=function(x) {
-  ggplot(x, aes(Trait, Value, group=Code)) +
+  ggplot(x, aes(Trait, Value, group=Trait)) +
     geom_violin(aes(fill=Strain, color=Strain)) +
     geom_point(aes(Trait, Mean, color=Strain), size=3, pch=16) +
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_blank()) +
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) + 
-    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) + 
+    theme(axis.title.x=element_blank()) + 
     theme(axis.ticks.x=element_blank()) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
@@ -347,11 +376,45 @@ PlotFunc=function(x) {
 }
 
 tiff('PCA Traits Intrastrain.tiff', units="in", width=15, height=8, res=1000)
-Panel5=lapply(SplitIntra, PlotFunc)
-Panel5[[1]]=Panel5[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.5,by=0.3), limits=c(0,1.5))
-Panel5[[2]]=Panel5[[2]] + scale_y_continuous(expression('Particle roundness'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,5,by=1), limits=c(0,5))
+Panel=lapply(SplitIntra, PlotFunc)
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.6,by=0.4), limits=c(0,1.6))
+Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Particle roundness'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,4.8,by=1.2), limits=c(0,4.8))
 Xaxis=textGrob(expression(italic('C. reinhardtii')~'morphotype'), gp=gpar(fontface="bold", fontsize=18), rot=0)
-grid.arrange(grobs=Panel5, bottom=Xaxis, ncol=2, nrow=1)
+grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=1)
+dev.off()
+
+# Split the dataset
+SplitIntra=split(MeltIntra, list(MeltIntra$Code,MeltIntra$Trait))
+
+# Box plots of traits
+PlotFunc=function(x) {
+  ggplot(x, aes(Code, Value, group=Code)) +
+    geom_boxplot(aes(fill=Code, color=Code), size=0.5, width=0.7, fatten=NA, outlier.shape=NA) +
+    stat_boxplot(aes(color=Code), geom="errorbar", width=0.2) +
+    geom_point(aes(Code, Mean, color=Code), size=3, pch=16) +
+    theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
+    theme(axis.text.x=element_text(face="plain", colour="black", size=18)) +
+    theme(axis.title.y=element_blank()) +
+    theme(axis.title.x=element_blank()) +
+    scale_x_discrete(labels=c("CR1S"=expression(C[R1S]),"CR1SC"=expression(C[R1SC]),"CR1MC"=expression(C[R1MC]),"CR1LC"=expression(C[R1LC]),"CR2S"=expression(C[R2S]),"CR2SC"=expression(C[R2SC]),"CR2MC"=expression(C[R2MC]),"CR3S"=expression(C[R3S]),"CR3SC"=expression(C[R3SC]),"CR3MC"=expression(C[R3MC]),"CR4S"=expression(C[R4S]),"CR4SC"=expression(C[R4SC]),"CR5S"=expression(C[R5S]),"CR5SC"=expression(C[R5SC]),"CR6S"=expression(C[R6S]),"CR6SC"=expression(C[R6SC]))) +
+    theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
+    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
+    scale_fill_manual(values=alpha(c("CR1S"="mediumpurple3","CR1SC"="mediumpurple3","CR1MC"="mediumpurple3","CR1LC"="mediumpurple3","CR2S"="cornflowerblue","CR2SC"="cornflowerblue","CR2MC"="cornflowerblue","CR3S"="chartreuse3","CR3SC"="chartreuse3","CR3MC"="chartreuse3","CR4S"="gold2","CR4SC"="gold2","CR5S"="darkorange1","CR5SC"="darkorange1","CR6S"="tomato2","CR6SC"="tomato2"),0.5)) +
+    scale_color_manual(values=c("CR1S"="mediumpurple3","CR1SC"="mediumpurple3","CR1MC"="mediumpurple3","CR1LC"="mediumpurple3","CR2S"="cornflowerblue","CR2SC"="cornflowerblue","CR2MC"="cornflowerblue","CR3S"="chartreuse3","CR3SC"="chartreuse3","CR3MC"="chartreuse3","CR4S"="gold2","CR4SC"="gold2","CR5S"="darkorange1","CR5SC"="darkorange1","CR6S"="tomato2","CR6SC"="tomato2")) +
+    theme(legend.position="none")
+}
+
+tiff('PCA Traits Intrastrain.tiff', units="in", width=15, height=8, res=1000)
+Panel1=lapply(SplitIntra[c(1:16)], PlotFunc)
+Panel1=lapply(Panel1, function(x) {x=x + scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.6,by=0.4), limits=c(0,1.6))})
+Yaxis=textGrob(expression('Particle area'), gp=gpar(fontface="bold", fontsize=18), rot=90)
+Grid1=grid.arrange(grobs=Panel1, left=Yaxis, ncol=4, nrow=4)
+Panel2=lapply(SplitIntra[c(17:32)], PlotFunc)
+Panel2=lapply(Panel2, function(x) {x=x + scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,4.8,by=1.2), limits=c(0,4.8))})
+Yaxis=textGrob(expression('Particle roundness'), gp=gpar(fontface="bold", fontsize=18), rot=90)
+Grid2=grid.arrange(grobs=Panel2, left=Yaxis, ncol=4, nrow=4)
+Xaxis=textGrob(expression(italic('C. reinhardtii')~'morphotype'), gp=gpar(fontface="bold", fontsize=18), rot=0)
+grid.arrange(Grid1, Grid2, bottom=Xaxis, ncol=2, nrow=1)
 dev.off()
 
 
