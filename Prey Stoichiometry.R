@@ -98,17 +98,11 @@ PlotFunc=function(x) {
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
     theme(axis.title.x=element_blank()) +
     scale_y_continuous(labels=sprintf(seq(12,20,by=2), fmt="%.0f"), breaks=seq(12,20,by=2), limits=c(12,20)) +
-    scale_x_discrete(labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R6]),expression(C[R7]))) +
+    scale_x_discrete(labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R5]),expression(C[R6]))) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
     scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
-    theme(strip.background=element_blank(), strip.text.y=element_blank()) +
-    theme(strip.background=element_blank(), strip.text.x=element_text(face="plain", colour="black", size=18, angle=0, vjust=2, hjust=0.5)) +
-    annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf, size=1.2) +
-    annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, size=1.2) +
-    theme(strip.background=element_blank(), strip.text.x=element_blank()) +
-    facet_wrap(~Element, scales="free") +
     theme(legend.position="none")
 }
 
