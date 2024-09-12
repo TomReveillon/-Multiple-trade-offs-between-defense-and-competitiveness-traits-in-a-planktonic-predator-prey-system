@@ -37,7 +37,7 @@ library(scales)
 #################################################################################
 
 # Load the datasets
-Folder="Collection Strains"
+Folder="Prey Morphology"
 Files=list.files(path=Folder, pattern="*.txt", full.names=T)
 DataInter=ldply(Files, read.table, sep="\t", fill=T, header=T, dec=",")
 
