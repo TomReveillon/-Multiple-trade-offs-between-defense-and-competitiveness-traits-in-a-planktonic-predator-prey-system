@@ -200,7 +200,7 @@ PlotFunc=function(x) {
     theme(axis.ticks.x=element_blank()) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.5)) +
+    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
     annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
@@ -233,7 +233,7 @@ PlotFunc=function(x) {
     scale_x_discrete(labels=c("CR1"=expression(C[R1]),"CR2"=expression(C[R2]),"CR3"=expression(C[R3]),"CR4"=expression(C[R4]),"CR5"=expression(C[R5]),"CR6"=expression(C[R6]))) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.5)) +
+    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(legend.position="none")
 }
@@ -366,7 +366,7 @@ PlotFunc=function(x) {
     theme(axis.ticks.x=element_blank()) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.5)) +
+    scale_fill_manual(values=alpha(c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2"),0.3)) +
     scale_color_manual(values=c("CR1"="mediumpurple3","CR2"="cornflowerblue","CR3"="chartreuse3","CR4"="gold2","CR5"="darkorange1","CR6"="tomato2")) +
     theme(strip.background=element_blank(), strip.text.x=element_blank()) +
     annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
@@ -399,7 +399,7 @@ PlotFunc=function(x) {
     scale_x_discrete(labels=c("CR1S"=expression(C[R1S]),"CR1SC"=expression(C[R1SC]),"CR1MC"=expression(C[R1MC]),"CR1LC"=expression(C[R1LC]),"CR2S"=expression(C[R2S]),"CR2SC"=expression(C[R2SC]),"CR2MC"=expression(C[R2MC]),"CR3S"=expression(C[R3S]),"CR3SC"=expression(C[R3SC]),"CR3MC"=expression(C[R3MC]),"CR4S"=expression(C[R4S]),"CR4SC"=expression(C[R4SC]),"CR5S"=expression(C[R5S]),"CR5SC"=expression(C[R5SC]),"CR6S"=expression(C[R6S]),"CR6SC"=expression(C[R6SC]))) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
-    scale_fill_manual(values=alpha(c("CR1S"="mediumpurple3","CR1SC"="mediumpurple3","CR1MC"="mediumpurple3","CR1LC"="mediumpurple3","CR2S"="cornflowerblue","CR2SC"="cornflowerblue","CR2MC"="cornflowerblue","CR3S"="chartreuse3","CR3SC"="chartreuse3","CR3MC"="chartreuse3","CR4S"="gold2","CR4SC"="gold2","CR5S"="darkorange1","CR5SC"="darkorange1","CR6S"="tomato2","CR6SC"="tomato2"),0.5)) +
+    scale_fill_manual(values=alpha(c("CR1S"="mediumpurple3","CR1SC"="mediumpurple3","CR1MC"="mediumpurple3","CR1LC"="mediumpurple3","CR2S"="cornflowerblue","CR2SC"="cornflowerblue","CR2MC"="cornflowerblue","CR3S"="chartreuse3","CR3SC"="chartreuse3","CR3MC"="chartreuse3","CR4S"="gold2","CR4SC"="gold2","CR5S"="darkorange1","CR5SC"="darkorange1","CR6S"="tomato2","CR6SC"="tomato2"),0.3)) +
     scale_color_manual(values=c("CR1S"="mediumpurple3","CR1SC"="mediumpurple3","CR1MC"="mediumpurple3","CR1LC"="mediumpurple3","CR2S"="cornflowerblue","CR2SC"="cornflowerblue","CR2MC"="cornflowerblue","CR3S"="chartreuse3","CR3SC"="chartreuse3","CR3MC"="chartreuse3","CR4S"="gold2","CR4SC"="gold2","CR5S"="darkorange1","CR5SC"="darkorange1","CR6S"="tomato2","CR6SC"="tomato2")) +
     theme(legend.position="none")
 }
