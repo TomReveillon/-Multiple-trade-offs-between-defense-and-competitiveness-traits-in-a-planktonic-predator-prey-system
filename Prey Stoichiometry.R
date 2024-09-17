@@ -92,11 +92,12 @@ PlotFunc=function(x) {
     geom_boxplot(aes(fill=Strain, color=Strain), size=0.5, width=0.7, fatten=NA, outlier.shape=NA) +
     stat_boxplot(aes(color=Strain), geom="errorbar", width=0.2) +
     geom_point(aes(Strain, Mean, color=Strain), size=3, pch=16, alpha=0.7) +
-    ylab(expression('Carbon:nitrogen ratio ratio'~'('*ng~C~ng~N^-1*')')) + xlab(expression(italic('C. reinhardtii')~'strain')) +
+    ylab(expression('Carbon:nitrogen ratio ratio'~'('*ng~C~ng~N^-1*')')) + 
+    xlab(expression(italic('C. reinhardtii')~'strain')) +
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
-    theme(axis.title.x=element_blank()) +
+    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
     scale_y_continuous(labels=sprintf(seq(12,20,by=2), fmt="%.0f"), breaks=seq(12,20,by=2), limits=c(12,20)) +
     scale_x_discrete(labels=c(expression(C[R1]),expression(C[R2]),expression(C[R3]),expression(C[R4]),expression(C[R5]),expression(C[R6]))) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
