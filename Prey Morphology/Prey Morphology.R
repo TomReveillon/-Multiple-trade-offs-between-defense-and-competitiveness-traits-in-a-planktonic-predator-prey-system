@@ -229,7 +229,7 @@ PlotFunc=function(x) {
     theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.text.x=element_text(face="plain", colour="black", size=18)) +  
     theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
-    theme(axis.title.x=element_text(face="plain", colour="black", size=18)) +
+    theme(axis.title.x=element_blank()) +
     scale_x_discrete(labels=c("CR1"=expression(C[R1]),"CR2"=expression(C[R2]),"CR3"=expression(C[R3]),"CR4"=expression(C[R4]),"CR5"=expression(C[R5]),"CR6"=expression(C[R6]))) +
     theme(axis.line=element_line(colour="black")) + theme(panel.background=element_blank()) +
     theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
@@ -240,7 +240,7 @@ PlotFunc=function(x) {
 
 tiff('PCA Traits Interstrain.tiff', units="in", width=15, height=8, res=1000)
 Panel=lapply(SplitInter, PlotFunc)
-Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.6,by=0.4), limits=c(0,1.6))
+Panel[[1]]=Panel[[1]] + scale_y_continuous(expression('Particle area'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8))
 Panel[[2]]=Panel[[2]] + scale_y_continuous(expression('Particle roundness'), labels=function(x) sprintf("%.1f", x), breaks=seq(0,4.8,by=1.2), limits=c(0,4.8))
 Xaxis=textGrob(expression(italic('C. reinhardtii')~'strain'), gp=gpar(fontface="bold", fontsize=18), rot=0)
 grid.arrange(grobs=Panel, bottom=Xaxis, ncol=2, nrow=1)
@@ -406,7 +406,7 @@ PlotFunc=function(x) {
 
 tiff('PCA Traits Intrastrain.tiff', units="in", width=15, height=8, res=1000)
 Panel1=lapply(SplitIntra[c(1:16)], PlotFunc)
-Panel1=lapply(Panel1, function(x) {x=x + scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,1.6,by=0.4), limits=c(0,1.6))})
+Panel1=lapply(Panel1, function(x) {x=x + scale_y_continuous(labels=function(x) sprintf("%.1f", x), breaks=seq(0,0.8,by=0.2), limits=c(0,0.8))})
 Yaxis=textGrob(expression('Particle area'), gp=gpar(fontface="bold", fontsize=18), rot=90)
 Grid1=grid.arrange(grobs=Panel1, left=Yaxis, ncol=4, nrow=4)
 Panel2=lapply(SplitIntra[c(17:32)], PlotFunc)
