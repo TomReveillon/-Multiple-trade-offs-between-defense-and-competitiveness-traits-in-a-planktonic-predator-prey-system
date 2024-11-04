@@ -139,7 +139,7 @@ HandlingsB=round(as.data.frame(do.call("rbind",HandlingsB)),4)
 HandlingsB=cbind(Strain=Strain,Bead=Bead,HandlingsB)
 rownames(HandlingsB)=c()
 
-# Include bead parameters
+# Include microplastic densities
 BeadC=DataFRB$IDensP[1:900]*0.0000
 BeadL=DataFRB$IDensP[1:900]*0.0625
 BeadM=DataFRB$IDensP[1:900]*0.1250
@@ -160,24 +160,24 @@ SplitDataC=split(DataFRB, list(DataFRB$Strain))
 # Functional response model
 FuncC=function(x) {
   ModC=nls(IngesP ~ (a * IDensP) / (1 + a * h * IDensP + c * IBeadP), start=c(a=1.0, h=0.1, c=1.0), data=x)
-  Coefficient=data.frame(Coefficient=coef(summary(ModC))[3,1], CoefficientSD=coef(summary(ModC))[3,2])
-  Coefficient=data.frame(Coefficient=Coefficient[,1], CoefficientL=Coefficient[,1]-Coefficient[,2], CoefficientU=Coefficient[,1]+Coefficient[,2])
-  Parameters=list(Coefficient=Coefficient)
+  CoeffB=data.frame(CoeffB=coef(summary(ModC))[3,1], CoeffBSD=coef(summary(ModC))[3,2])
+  CoeffB=data.frame(CoeffB=CoeffB[,1], CoeffBL=CoeffB[,1]-CoeffB[,2], CoeffBU=CoeffB[,1]+CoeffB[,2])
+  Parameters=list(CoeffB=CoeffB)
 }
 OutC=lapply(SplitDataC, FuncC)
 
-# Calculate the bead coefficient
-Coefficient=bind_rows(lapply(OutC, function (x) x[c("Coefficient")]))
-Coefficient=round(as.data.frame(do.call("rbind",Coefficient)),4)
-Coefficient=cbind(Strain=Strain,Coefficient)
-rownames(Coefficient)=c()
+# Calculate the microplastic coefficient
+CoeffB=bind_rows(lapply(OutC, function (x) x[c("CoeffB")]))
+CoeffB=round(as.data.frame(do.call("rbind",CoeffB)),4)
+CoeffB=cbind(Strain=Strain,CoeffB)
+rownames(CoeffB)=c()
 
 # Convert parameters units
 DataFRB$A=round((DataFRB$Attack*60*60*24)/(10^6),4)
 DataFRB$H=round((DataFRB$Handling/60/60/24)*(10^6),4)
 
-# Functional response model
-ModCR=nls(((IngesP*60*60*24)/10^6) ~ (A * (IDensP*10^-1)) / (1 + A * H * (IDensP*10^-1) + c * (IBeadP*10^-1)), start=c(c=1.0), data=subset(DataFRB, Strain=="CR4"))
+# Calculate the microplastic coefficient
+ModCR=nls(((IngesP*60*60*24)/10^6) ~ (A * (IDensP*10^-1)) / (1 + A * H * (IDensP*10^-1) + c * (IBeadP*10^-1)), start=c(c=1.0), data=DataFRB)
 
 
 ###############################################################
@@ -210,7 +210,7 @@ ModGRSD=function(x) {coef(summary(lm(log(DensP+1)~DayP, data=subset(x, DayP <= 5
 GR=round(c(do.call("rbind",lapply(SplitDataAG, ModGR))),4)
 GRL=round(GR-c(do.call("rbind",lapply(SplitDataAG, ModGRSD))),4)
 GRU=round(GR+c(do.call("rbind",lapply(SplitDataAG, ModGRSD))),4)
-GrowAG=data.frame(Strain=Strain, GrowAG=GR, GrowAGL=GRL, GrowAGU=GRU)
+GrowA=data.frame(Strain=Strain, GrowA=GR, GrowAL=GRL, GrowAU=GRU)
 
 
 ###################################################################
@@ -243,7 +243,7 @@ ModGRSD=function(x) {coef(summary(lm(DensP~DayP, data=subset(x, DayP <= 5))))[2,
 GR=round(c(do.call("rbind",lapply(SplitDataRG, ModGR))),4)
 GRL=round(GR-c(do.call("rbind",lapply(SplitDataRG, ModGRSD))),4)
 GRU=round(GR+c(do.call("rbind",lapply(SplitDataRG, ModGRSD))),4)
-GrowRG=data.frame(Strain=Strain, GrowRG=GR, GrowRGL=GRL, GrowRGU=GRU)
+GrowR=data.frame(Strain=Strain, GrowR=GR, GrowRL=GRL, GrowRU=GRU)
 
 
 ################################################################
@@ -278,7 +278,7 @@ ModGRSD=function(x) {coef(summary(lm(DensP~DayP, data=subset(x, DayP <= 5))))[2,
 GR=round(c(do.call("rbind",lapply(SplitDataRGB, ModGR))),4)
 GRL=round(GR-c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
 GRU=round(GR+c(do.call("rbind",lapply(SplitDataRGB, ModGRSD))),4)
-GrowRGB=data.frame(Strain=Strain, Bead=Bead, GrowRGB=GR, GrowRGBL=GRL, GrowRGBU=GRU)
+GrowRB=data.frame(Strain=Strain, Bead=Bead, GrowRB=GR, GrowRBL=GRL, GrowRBU=GRU)
 
 
 ####################################################
@@ -342,9 +342,9 @@ StoichioU=c(round(DataST[,4],2))
 ############################
 
 # Create the datasets
-Data=data.frame(Strain=unique(DataFR$Strain),Attack=Attacks[,2],Handling=Handlings[,2],PreyG=GrowAG[,2],PredG=GrowRG[,2],Area=Area,Stoichio=Stoichio,PreyGM=GrowM,Affin=Affin,Satur=Satur) 
-DataL=data.frame(Strain=unique(DataFR$Strain),AttackL=Attacks[,3],HandlingL=Handlings[,3],PreyGL=GrowAG[,3],PredGL=GrowRG[,3],AreaL=AreaL,StoichioL=StoichioL,PreyGML=GrowML,AffinL=AffinL,SaturL=SaturL)
-DataU=data.frame(Strain=unique(DataFR$Strain),AttackU=Attacks[,4],HandlingU=Handlings[,4],PreyGU=GrowAG[,4],PredGU=GrowRG[,4],AreaU=AreaU,StoichioU=StoichioU,PreyGMU=GrowMU,AffinU=AffinU,SaturU=SaturU)
+Data=data.frame(Strain=unique(DataFR$Strain),Attack=Attacks[,2],Handling=Handlings[,2],PreyG=GrowA[,2],PredG=GrowR[,2],Area=Area,Stoichio=Stoichio,PreyGM=GrowM,Affin=Affin,Satur=Satur) 
+DataL=data.frame(Strain=unique(DataFR$Strain),AttackL=Attacks[,3],HandlingL=Handlings[,3],PreyGL=GrowA[,3],PredGL=GrowR[,3],AreaL=AreaL,StoichioL=StoichioL,PreyGML=GrowML,AffinL=AffinL,SaturL=SaturL)
+DataU=data.frame(Strain=unique(DataFR$Strain),AttackU=Attacks[,4],HandlingU=Handlings[,4],PreyGU=GrowA[,4],PredGU=GrowR[,4],AreaU=AreaU,StoichioU=StoichioU,PreyGMU=GrowMU,AffinU=AffinU,SaturU=SaturU)
 Data[,c(2:10)]=round(Data[,c(2:10)],4); DataL[,c(2:10)]=round(DataL[,c(2:10)],4); DataU[,c(2:10)]=round(DataU[,c(2:10)],4)
 
 # Melt the dataset
@@ -384,7 +384,7 @@ MeltData$SigPreyG=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.te
 MeltData$SigAffin=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,3])[[3]]})),4), each=6)
 MeltData$SigSatur=rep(round(do.call("rbind",lapply(ListData, function(x) {cor.test(x[,1],x[,4])[[3]]})),4), each=6)
 
-# Identify non-Sigficant correlations
+# Identify non-significant correlations
 MeltData$SigPreyG=ifelse(MeltData$SigPreyG > 0.05, "No", "Yes")
 MeltData$SigAffin=ifelse(MeltData$SigAffin > 0.05, "No", "Yes")
 MeltData$SigSatur=ifelse(MeltData$SigSatur > 0.05, "No", "Yes")
@@ -532,7 +532,7 @@ MeltData2$Slope=rep(round(do.call("rbind",lapply(ListData2, function(x) {coef(lm
 MeltData2$Cor=rep(round(do.call("rbind",lapply(ListData2, function(x) {cor.test(x[,2],x[,1])[[4]]})),4), each=6)
 MeltData2$Sig=rep(round(do.call("rbind",lapply(ListData2, function(x) {cor.test(x[,2],x[,1])[[3]]})),4), each=6)
 
-# Identify non-Sigficant correlations
+# Identify non-significant correlations
 MeltData2$Sig=ifelse(MeltData2$Sig > 0.05, "No", "Yes")
 
 
