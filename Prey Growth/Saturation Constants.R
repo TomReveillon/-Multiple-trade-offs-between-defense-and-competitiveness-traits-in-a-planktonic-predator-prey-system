@@ -246,9 +246,9 @@ Data4=Data4[order(Data4$Strain,Data4$Nitro),]
 Data4=as.data.frame(Data4 %>% group_by(Strain,Nitro) %>% dplyr::slice(11:n()))
 
 # Extract combinations of names
-Names=unique(Data4[,c("Species","Nitro")])
-Names=Names[order(Names$Nitro,Names$Species),]
-Species=Names$Species; Nitro=Names$Nitro
+Names=unique(Data4[,c("Strain","Nitro")])
+Names=Names[order(Names$Nitro,Names$Strain),]
+Strain=Names$Strain; Nitro=Names$Nitro
 
 # Split the dataset
 SplitData4=split(Data4, list(Data4$Strain,Data4$Nitro))
@@ -260,7 +260,7 @@ OutGR=lapply(SplitData4, ModelGR)
 # Calculate mean per capita growth rates
 ModelGR2=function(x) {c(MeanGR=coef(x)[2],MeanGRLSD=coef(x)[2]-coef(x)[4],MeanGRUSD=coef(x)[2]+coef(x)[4])}
 OutGR2=round(as.data.frame(do.call("rbind",lapply(OutGR, ModelGR2))),4)
-OutGR2=cbind(Species=Species,Nitro=Nitro,OutGR2)
+OutGR2=cbind(Strain=Strain,Nitro=Nitro,OutGR2)
 rownames(OutGR2)=c()
 
 # Subset important columns
@@ -292,15 +292,15 @@ Data5=subset(data.frame(Strain,Nitro,DayP,Model), !DayP %in% c("9.8","10"))
 Data5=data.frame(Data5,RateGR[,c(1,3,4)]); Data5=Data5[,c(1,2,3,5,6,7,4)]
 
 # Extract combinations of names
-Names=unique(Data4[,c("Species","Nitro")])
-Names=Names[order(Names$Nitro,Names$Species),]
-Species=Names$Species; Nitro=Names$Nitro
+Names=unique(Data4[,c("Strain","Nitro")])
+Names=Names[order(Names$Nitro,Names$Strain),]
+Strain=Names$Strain; Nitro=Names$Nitro
 
 # Find maximum consecutive per capita growth rates
-OutGR3=data.frame(Species=Species, Nitro=Nitro)
-OutGR3$GrowCM=as.data.frame(setDT(Data5)[, .SD[which.max(GrowP)], by=list(Species,Nitro)])[,4]
-OutGR3$GrowCMLSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPLSD)], by=list(Species,Nitro)])[,5]
-OutGR3$GrowCMUSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Species,Nitro)])[,6]
+OutGR3=data.frame(Strain=Strain, Nitro=Nitro)
+OutGR3$GrowCM=as.data.frame(setDT(Data5)[, .SD[which.max(GrowP)], by=list(Strain,Nitro)])[,4]
+OutGR3$GrowCMLSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPLSD)], by=list(Strain,Nitro)])[,5]
+OutGR3$GrowCMUSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(Strain,Nitro)])[,6]
 
 
 #####################################################
@@ -308,12 +308,12 @@ OutGR3$GrowCMUSD=as.data.frame(setDT(Data5)[, .SD[which.max(GrowPUSD)], by=list(
 #####################################################
 
 # Create datasets
-Data6=cbind(OutGR2[,c(1:2)], Grow=OutGR2[,3], GrowL=OutGR2[,4], GrowU=OutGR2[,5], GrowC=OutGR3[,3], GrowCL=OutGR3[,4], GrowCU=OutGR3[,5])
-Data0=cbind(unique(OutGR2[,c(1)]), rep(0,6), Grow=rep(0,6), GrowL=rep(0,6), GrowU=rep(0,6), GrowC=rep(0,6), GrowCL=rep(0,6), GrowCU=rep(0,6))
+Data6=cbind(unique(OutGR2[,c(1:2)]), Grow=OutGR2[,3], GrowL=OutGR2[,4], GrowU=OutGR2[,5], GrowC=OutGR3[,3], GrowCL=OutGR3[,4], GrowCU=OutGR3[,5])
+Data0=cbind(Strain=unique(OutGR2[,1]), Nitro=rep(0,6), Grow=rep(0,6), GrowL=rep(0,6), GrowU=rep(0,6), GrowC=rep(0,6), GrowCL=rep(0,6), GrowCU=rep(0,6))
 
 # Combine datasets
 Data6=rbind(Data0,Data6)
-Data6$Nitro=as.numeric(Data6$Nitro)
+Data6[,c(2:8)] %<>% mutate_if(is.character,as.numeric)
 Data6[,c(3:8)]=round(Data6[,c(3:8)],4)
 Data6=Data6[order(Data6$Strain,Data6$Nitro),]
 Data6=subset(Data6, Nitro < 50)
@@ -397,7 +397,7 @@ ggplot(Data9, aes(NitroP, GrowP, group=Strain)) +
   geom_line(aes(color=Strain), linetype="solid", size=1) +
   geom_point(data=Data6, aes(Nitro, Grow, color=Strain), size=2, pch=16) +
   ylab(expression(italic('C. reinhardtii')~'growth rate'~'('*day^-1*')')) + 
-  xlab(expression('Nitrate concentration'~'('*µmol~NO[3]^{'-'}~mL^-1*')')) +
+  xlab(expression('Nitrate concentration'~'('*µM~NO[3]^{'-'}~L^-1*')')) +
   theme(axis.text.y=element_text(face="plain", colour="black", size=18)) +  
   theme(axis.text.x=element_text(face="plain", colour="black", size=18)) + 
   theme(axis.title.y=element_text(face="plain", colour="black", size=18)) +
